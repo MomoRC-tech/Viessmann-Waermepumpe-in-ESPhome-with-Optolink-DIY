@@ -1,0 +1,9 @@
+Schematic (generic):
+https://github.com/openv/openv/wiki/ESPHome-Optolink
+
+3D housing: 
+https://makerworld.com/de/models/1567595-viessmann-optolink-esp8266-wemos-d1-mini-enclosure#profileId-1648098
+
+related documentation:
+https://github.com/openv/openv/wiki/Bauanleitung-ESP8266
+https://github.com/openv/openv/wiki/Bauanleitung-LAN-Ethernet
