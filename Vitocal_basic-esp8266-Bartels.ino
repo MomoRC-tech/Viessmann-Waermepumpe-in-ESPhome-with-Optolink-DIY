@@ -196,13 +196,13 @@ void pollVitoGroup(VitoPollGroupState &state,
 
   // do not start a new round before the group interval has passed
   if (state.index == 0 && state.lastRoundEndMs != 0) {
-    if (now - state.lastRoundEndMs < state.intervalMs) {
+    if ((long)(now - state.lastRoundEndMs) < (long)state.intervalMs) {
       return;
     }
   }
 
   // enforce minimum gap between individual requests
-  if (state.lastRequestMs != 0 && (now - state.lastRequestMs) < minRequestGapMs) {
+  if (state.lastRequestMs != 0 && (long)(now - state.lastRequestMs) < (long)minRequestGapMs) {
     return;
   }
 
