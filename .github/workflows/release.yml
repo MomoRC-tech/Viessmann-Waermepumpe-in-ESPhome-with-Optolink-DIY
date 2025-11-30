@@ -23,7 +23,7 @@ jobs:
           arduino-cli version
 
       - name: Lint sketch
-        run: arduino-cli lint "Vitocal_basic-esp8266-Bartels.ino" || true
+        run: arduino-cli lint "Vitocal_basic-esp8266-Bartels/Vitocal_basic-esp8266-Bartels.ino" || true
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -38,7 +38,7 @@ jobs:
       - name: Package sources
         run: |
           mkdir -p dist
-          zip -r dist/source-${{ github.ref_name }}.zip README.md Vitocal_basic-esp8266-Bartels.ino HA_mqtt_addin.h Vitocal_datapoints.h Vitocal_polling.h build_opt.h || true
+          zip -r dist/source-${{ github.ref_name }}.zip README.md Vitocal_basic-esp8266-Bartels || true
 
       - name: Upload asset
         uses: softprops/action-gh-release@v1
