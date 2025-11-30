@@ -23,7 +23,14 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
 
 // #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
+#ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
 #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
+#endif
+#if ELEGANTOTA_USE_ASYNC_WEBSERVER
+#pragma message("ElegantOTA async mode enabled")
+#else
+#pragma message("ElegantOTA async mode DISABLED")
+#endif
 #include <ElegantOTA.h>
 // VitoWiFi v3
 #include <VitoWiFi.h>
