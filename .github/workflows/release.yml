@@ -16,12 +16,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Arduino CLI
+        id: setup_cli
+        continue-on-error: true
         uses: arduino/setup-arduino-cli@v1
         with:
           version: 0.35.3
 
       - name: Fallback: Manual install Arduino CLI if setup failed
-        if: ${{ failure() }}
+        if: ${{ steps.setup_cli.outcome == 'failure' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -50,6 +52,12 @@ jobs:
 
       - name: Arduino CLI version
         run: arduino-cli version || true
+
+      - name: Validate YAML syntax (yamllint)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+          yamllint -s .github/workflows/release.yml
 
       - name: Lint Arduino sketch
         run: |
