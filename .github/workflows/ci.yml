@@ -44,4 +44,8 @@ jobs:
           arduino-cli lib install --git-url https://github.com/openv/vitowifi.git
 
       - name: Compile firmware (ESP8266 D1 mini)
-        run: arduino-cli compile --fqbn esp8266:esp8266:d1_mini "Vitocal_basic-esp8266-Bartels.ino"
+        run: |
+          arduino-cli compile \
+            --fqbn esp8266:esp8266:d1_mini \
+            --build-properties "compiler.cpp.extra_flags=-DELEGANTOTA_USE_ASYNC_WEBSERVER=1" \
+            "Vitocal_basic-esp8266-Bartels.ino"
