@@ -7,3 +7,6 @@ https://makerworld.com/de/models/1567595-viessmann-optolink-esp8266-wemos-d1-min
 related documentation:
 https://github.com/openv/openv/wiki/Bauanleitung-ESP8266
 https://github.com/openv/openv/wiki/Bauanleitung-LAN-Ethernet
+
+VitoWifi:
+https://github.com/bertmelis/VitoWiFi

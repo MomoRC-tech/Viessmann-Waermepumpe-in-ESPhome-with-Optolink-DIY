@@ -1,5 +1,11 @@
 // home assistant integration ##########################################
 
+#pragma once
+
+#include <ArduinoHA.h>
+#include "Vitocal_datapoints.h"
+#include "Vitocal_polling.h"
+
 //*** forward declararions ***************************************************
 void onMQTTConnected(void);
 void onMQTTMessage(const char* topic, const uint8_t* payload, uint16_t length);
@@ -54,6 +60,10 @@ HASensor  operationmodeSens    ("Betriebsmodus");
 HASensor  manualmodeSens       ("ManualMode");
 HASelect  selectManualMode     ("setManualMode");
 
+HANumber fastPollInterval("fastPollInterval");
+HANumber mediumPollInterval("mediumPollInterval");
+HANumber slowPollInterval("slowPollInterval");
+
 //###########################################################################
 // setup home assistant integration##########################################
 void setupHomeAssistant() {   
@@ -89,7 +99,7 @@ void setupHomeAssistant() {
     operationmodeSens.setIcon("mdi:state-machine");          operationmodeSens.setName("Modus"); 
     manualmodeSens.setIcon("mdi:braille");                   manualmodeSens.setName("Man.Modus"); 
     selectManualMode.setIcon("mdi:braille");                 selectManualMode.setName("set Man.Modus");
-    selectManualMode.setOptions("Normal;man.Heizbetrieb;1x WW auf Temp2"); // use semicolons as separator of options
+    selectManualMode.setOptions("normal;manuel;WW auf Temp2"); // use semicolons as separator of options
     selectManualMode.onCommand(onManualModeCommand); 
 
     WWtempSollSens.setIcon("mdi:state-machine");             WWtempSollSens.setName("Warmwasser Soll");             WWtempSollSens.setUnitOfMeasurement("C");         
@@ -112,6 +122,55 @@ void setupHomeAssistant() {
     RaumSollRedSens.setIcon("mdi:state-machine");                RaumSollRedSens.setName("Raumtemperatur Red. Soll");     RaumSollRedSens.setUnitOfMeasurement("C");  
     RaumSollRedSens.setMin(10);   RaumSollRedSens.setMax(30);    RaumSollRedSens.setStep(0.5);                            RaumSollRedSens.onCommand(setRaumSollRed);  
 
+    // polling interval controls (seconds) - allow tuning from Home Assistant
+    fastPollInterval.setIcon("mdi:timer-sand");
+    fastPollInterval.setName("Vito Fast Poll Interval");
+    fastPollInterval.setUnitOfMeasurement("s");
+    fastPollInterval.setMin(5);
+    fastPollInterval.setMax(300);
+    fastPollInterval.setStep(1);
+    fastPollInterval.onCommand([](HANumeric number, HANumber* sender) {
+        if (!number.isSet() || sender == nullptr) {
+            return;
+        }
+        float requested = number.toFloat();
+        float applied = requested < 5.0f ? 5.0f : requested;
+        vitoFastState.intervalMs = (uint32_t)(applied * 1000.0f);
+        sender->setState(applied);
+    });
+
+    mediumPollInterval.setIcon("mdi:timer-sand-half");
+    mediumPollInterval.setName("Vito Medium Poll Interval");
+    mediumPollInterval.setUnitOfMeasurement("s");
+    mediumPollInterval.setMin(5);
+    mediumPollInterval.setMax(600);
+    mediumPollInterval.setStep(1);
+    mediumPollInterval.onCommand([](HANumeric number, HANumber* sender) {
+        if (!number.isSet() || sender == nullptr) {
+            return;
+        }
+        float requested = number.toFloat();
+        float applied = requested < 5.0f ? 5.0f : requested;
+        vitoMediumState.intervalMs = (uint32_t)(applied * 1000.0f);
+        sender->setState(applied);
+    });
+
+    slowPollInterval.setIcon("mdi:timer-sand-complete");
+    slowPollInterval.setName("Vito Slow Poll Interval");
+    slowPollInterval.setUnitOfMeasurement("s");
+    slowPollInterval.setMin(5);
+    slowPollInterval.setMax(1800);
+    slowPollInterval.setStep(1);
+    slowPollInterval.onCommand([](HANumeric number, HANumber* sender) {
+        if (!number.isSet() || sender == nullptr) {
+            return;
+        }
+        float requested = number.toFloat();
+        float applied = requested < 5.0f ? 5.0f : requested;
+        vitoSlowState.intervalMs = (uint32_t)(applied * 1000.0f);
+        sender->setState(applied);
+    });
+
     HVACwaermepumpe.setName("Waermepumpe");                                       
     HVACwaermepumpe.setMinTemp(10);  HVACwaermepumpe.setMaxTemp(30);    HVACwaermepumpe.setTempStep(0.5);   
     HVACwaermepumpe.setModes(HAHVAC::OffMode | HAHVAC::HeatMode  | HAHVAC::CoolMode);
@@ -125,83 +184,84 @@ void setupHomeAssistant() {
     mqtt.setDataPrefix(MQTT_DATAPREFIX);
     mqtt.setDiscoveryPrefix(MQTT_DISCOVERYPREFIX);
     mqtt.begin(BROKER_ADDR, BROKER_PORT, BROKER_USERNAME, BROKER_PASSWORD);
+
+    // publish default polling intervals so HA sees initial state (seconds)
+    fastPollInterval.setState((float)(vitoFastState.intervalMs / 1000UL));
+    mediumPollInterval.setState((float)(vitoMediumState.intervalMs / 1000UL));
+    slowPollInterval.setState((float)(vitoSlowState.intervalMs / 1000UL));
 }
 
 
+// VitoWiFi v3 instance and datapoints (defined elsewhere)
+extern VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito;
+extern VitoWiFi::Datapoint setTempRaumSoll;
+extern VitoWiFi::Datapoint setTempRaumSollRed;
+extern VitoWiFi::Datapoint setTempHystWWsoll;
+extern VitoWiFi::Datapoint setTempHKneigung;
+extern VitoWiFi::Datapoint setTempHKniveau;
+extern VitoWiFi::Datapoint setTempWWsoll;
+extern VitoWiFi::Datapoint setTempWWsoll2;
+extern VitoWiFi::Datapoint setManualMode;
+
 void setRaumSoll (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempRaumSoll, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempRaumSoll, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void setRaumSollRed (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempRaumSollRed, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempRaumSollRed, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void setHystWWsoll (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempHystWWsoll, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempHystWWsoll, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void setHKneigung (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempHKneigung, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempHKneigung, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void setHKniveau (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempHKniveau, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempHKniveau, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void setWWSoll (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempWWsoll, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempWWsoll, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void setWWSoll2 (HANumeric number, HANumber* sender) {
-    DPValue _value(number.toFloat());
-    if (!number.isSet()) {
-        // the reset command was send by Home Assistant
-    } else {
-        VitoWiFi.writeDatapoint(setTempWWsoll2, _value);      
+    if (number.isSet()) {
+        float val = number.toFloat();
+        vito.write(setTempWWsoll2, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void onTargetTemperatureCommand(HANumeric temperature, HAHVAC* sender) {
-    //float temperatureFloat = temperature.toFloat();
-    DPValue _value(temperature.toFloat());
-    VitoWiFi.writeDatapoint(setTempRaumSoll, _value);  
+    float val = temperature.toFloat();
+    vito.write(setTempRaumSoll, val);
 
     sender->setTargetTemperature(temperature); // report target temperature back to the HA panel
 }
@@ -234,21 +294,20 @@ void onModeCommand(HAHVAC::Mode mode, HAHVAC* sender) {
 
 void onManualModeCommand(int8_t index, HASelect* sender)
 {
-    DPValue _idx((uint8_t)index);
     switch (index) {
     case 0:
         // Option "Normal" was selected
-        VitoWiFi.writeDatapoint(setManualMode, _idx);
+        vito.write(setManualMode, static_cast<uint8_t>(index));
         break;
 
     case 1:
         // Option "Manueller Heizbetrieb" was selected
-        VitoWiFi.writeDatapoint(setManualMode, _idx);
+        vito.write(setManualMode, static_cast<uint8_t>(index));
         break;
 
     case 2:
         // Option "1x WW auf Temp2" was selected
-        VitoWiFi.writeDatapoint(setManualMode, _idx);
+        vito.write(setManualMode, static_cast<uint8_t>(index));
         break;
 
     default:

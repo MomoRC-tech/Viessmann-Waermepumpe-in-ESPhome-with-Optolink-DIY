@@ -22,14 +22,17 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
 
 // #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
+#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
 #include <ElegantOTA.h>
+// VitoWiFi v3
 #include <VitoWiFi.h>
+#include "Vitocal_datapoints.h"
+#include "Vitocal_polling.h"
 // #include "Vitocal_common.h"
-#include "Vitocal_config.h"
 #include <FastLED.h>
 #include <WebSerial.h>
 
-// vitowifi
+// vitowifi instance (VS1 protocol on ESP8266 HW serial)
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial); 
 
 // reset reasons
@@ -96,7 +99,114 @@ int     eHeiz1 = 0;
 int     eHeiz2 = 0;
 boolean toggle = false;
 
+VitoPollGroupState vitoFastState   = {0, 0, 0, 20000UL};  // default 20s
+VitoPollGroupState vitoMediumState = {0, 0, 0, 40000UL};  // default 40s
+VitoPollGroupState vitoSlowState   = {0, 0, 0, 60000UL};  // default 60s
 
+static const char* const operationModeLabels[] = {
+  "Abschaltbetrieb",
+  "Warmwasser",
+  "Heizen und Warmwasser",
+  "undefiniert",
+  "dauernd reduziert",
+  "dauernd normal",
+  "normal Abschalt",
+  "nur kuehlen"
+};
+
+static const char* const manualModeLabels[] = {
+  "normal",
+  "manuel",
+  "WW auf Temp2"
+};
+
+static const char* labelOrFallback(uint8_t index, const char* const* table, size_t tableSize)
+{
+  if (tableSize == 0) {
+    return "n/a";
+  }
+  if (index < tableSize) {
+    return table[index];
+  }
+  return "Unknown";
+}
+
+// VitoWiFi datapoint polling groups
+// fast: relays, pumps, compressor, error (operational status)
+VitoWiFi::Datapoint* vitoFast[] = {
+  &dpCompFrequency,
+  &dpHeizkreispumpe,
+  &dpWWZirkPumpe,
+  &dpRelVerdichter,
+  &dpRelPrimaerquelle,
+  &dpRelSekundaerPumpe,
+  &dpRelEHeizStufe1,
+  &dpRelEHeizStufe2,
+  &dpVentilHeizenWW,
+  &dpOperationMode,
+  &dpManualMode,
+  &dpStoerung
+};
+const int vitoFastSize = sizeof(vitoFast) / sizeof(vitoFast[0]);
+
+// medium: temperatures
+VitoWiFi::Datapoint* vitoMedium[] = {
+  &dpTempOutside,
+  &dpWWoben,
+  &dpVorlaufSoll,
+  &dpVorlaufIst,
+  &dpRuecklauf
+};
+const int vitoMediumSize = sizeof(vitoMedium) / sizeof(vitoMedium[0]);
+
+// slow: setpoints, hysteresis, heating curve
+VitoWiFi::Datapoint* vitoSlow[] = {
+  &dpTempRaumSoll,
+  &dpTempRaumSollRed,
+  &dpTempWWSoll,
+  &dpTempWWSoll2,
+  &dpTempHystWWSoll,
+  &dpTempHKniveau,
+  &dpTempHKNeigung
+};
+const int vitoSlowSize = sizeof(vitoSlow) / sizeof(vitoSlow[0]);
+
+// helper to run one polling step for a group
+void pollVitoGroup(VitoPollGroupState &state,
+                   VitoWiFi::Datapoint **group,
+                   int groupSize,
+                   uint32_t minRequestGapMs)
+{
+  uint32_t now = millis();
+
+  // do not start a new round before the group interval has passed
+  if (state.index == 0 && state.lastRoundEndMs != 0) {
+    if (now - state.lastRoundEndMs < state.intervalMs) {
+      return;
+    }
+  }
+
+  // enforce minimum gap between individual requests
+  if (state.lastRequestMs != 0 && (now - state.lastRequestMs) < minRequestGapMs) {
+    return;
+  }
+
+  // try to queue next datapoint read; VitoWiFi itself rate-limits via return value
+  if (groupSize <= 0) {
+    return;
+  }
+
+  if (vito.read(*group[state.index])) {
+    state.lastRequestMs = now;
+    state.index++;
+    if (state.index >= groupSize) {
+      state.index = 0;
+      state.lastRoundEndMs = now;
+    }
+  }
+}
+
+// helper to run one polling step for a group
 //## setup#####################################################################
 void setup() {
   setupVitoWifi();  
@@ -111,28 +221,26 @@ void setup() {
 
 //** loop************************************************
 void loop() { 
-     
+  // cyclic VitoWiFi reads (v3 API, grouped for load balancing)
+  // each group is polled in rounds; within a round, datapoints are
+  // read sequentially with at least minRequestGapMs between requests.
+  // A new round for a group only starts after its intervalMs has passed.
+
+  // minimum gap between individual VitoWiFi read() calls
+  const uint32_t minRequestGapMs = 500; // adjust to 1000 if you prefer 1s
+
+  pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   minRequestGapMs);
+  pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, minRequestGapMs);
+  pollVitoGroup(vitoSlowState,   vitoSlow,   vitoSlowSize,   minRequestGapMs);
+
+  // bookkeeping and availability announcement
   EVERY_N_SECONDS (8) {
-        if (count == 0) {
-            VitoWiFi.readGroup("status3");
-        } else if (count == 1){
-            VitoWiFi.readGroup("temp2");
-        } else if (count == 2){
-            VitoWiFi.readGroup("status1");
-        } else if (count == 3){
-            VitoWiFi.readGroup("status2");
-        } else if (count == 4){
-            VitoWiFi.readGroup("temp");
-        } else if (count == 5){
-            VitoWiFi.readGroup("temp3");
-        } 
-        count++;
-        toggle = !toggle;
-        if (count == 6) {count = 0;}
-        count_tmp++;
-        device.publishAvailability();
-        WebSerial.println("readGroup sent");
-  } 
+    count++;
+    toggle = !toggle;
+    count_tmp++;
+    device.publishAvailability();
+    WebSerial.println("VitoWiFi read cycle running");
+  }
 
   vito.loop();
   mqtt.loop();
@@ -148,158 +256,118 @@ void loop() {
   }
 }
 
-// forward declaration of the handler 
-void onVitoResponse(const VitoWiFi::PacketVS1& response, const VitoWiFi::Datapoint& request);
-
+// forward declaration of the handlers (VitoWiFi v3)
+void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request);
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request);
 
 //************************************************************
 void setupVitoWifi () {
-  // ... setCallback() for each DP ...
-  VitoWiFi.setGlobalCallback(globalCallbackHandler);
-  VitoWiFi.disableLogger();
-  #ifdef ESP32
-    VitoWiFi.setup(&Serial1, 16, 17);
-  #elif defined(ESP8266)
-    VitoWiFi.setup(&Serial);
+  // initialise optolink serial and VitoWiFi v3
+  #ifdef ESP8266
+    Serial.begin(4800, SERIAL_8E1);
+  #elif defined(ESP32)
+    Serial1.begin(4800, SERIAL_8E1, 16, 17);
   #endif
+
+  vito.onResponse(onVitoResponse);
+  vito.onError(onVitoError);
+  vito.begin();
+}
+//** VitoWiFi response/error handlers (v3) ******************************
+
+void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request) {
+  VitoWiFi::VariantValue value = request.decode(data, length);
+
+  if (&request == &dpTempOutside) {
+    float temp = value;
+    AussenTempSens.setValue(temp);
+    WebSerial.println("tmpAu");
+  } else if (&request == &dpWWoben) {
+    float temp = value;
+    WWtempObenSens.setValue(temp);
+    WebSerial.println("WWo");
+  } else if (&request == &dpVorlaufSoll) {
+    float temp = value;
+    VorlaufTempSetSens.setValue(temp);
+  } else if (&request == &dpVorlaufIst) {
+    float temp = value;
+    VorlaufTempSens.setValue(temp);
+    HVACwaermepumpe.setCurrentTemperature(temp);
+  } else if (&request == &dpRuecklauf) {
+    float temp = value;
+    RuecklaufTempSens.setValue(temp);
+  } else if (&request == &dpCompFrequency) {
+    uint8_t v = value;
+    CompFrequencySens.setValue(v);
+  } else if (&request == &dpRelEHeizStufe1) {
+    eHeiz1 = static_cast<uint8_t>(value);
+  } else if (&request == &dpRelEHeizStufe2) {
+    uint8_t v2 = value;
+    eHeiz2 = eHeiz1 + (2 * v2);
+    RelEHeizStufeSens.setValue(eHeiz2);
+    HVACwaermepumpe.setAuxState(eHeiz2 != 0);
+  } else if (&request == &dpHeizkreispumpe) {
+    uint8_t v = value;
+    heizkreispumpeSens.setState(v);
+  } else if (&request == &dpWWZirkPumpe) {
+    uint8_t v = value;
+    WWzirkulationspumpeSens.setState(v);
+  } else if (&request == &dpRelVerdichter) {
+    uint8_t v = value;
+    RelVerdichterSens.setState(v);
+    HVACwaermepumpe.setMode(v ? HAHVAC::HeatMode : HAHVAC::OffMode);
+  } else if (&request == &dpRelPrimaerquelle) {
+    uint8_t v = value;
+    RelPrimaerquelleSens.setState(v);
+  } else if (&request == &dpRelSekundaerPumpe) {
+    uint8_t v = value;
+    RelSekundaerPumpeSens.setState(v);
+  } else if (&request == &dpVentilHeizenWW) {
+    uint8_t v = value;
+    if (v) {
+      ventilHeizenWWSens.setValue("Warmwasser");
+    } else {
+      ventilHeizenWWSens.setValue("Heizen");
+    }
+  } else if (&request == &dpOperationMode) {
+    uint8_t v = value;
+    const char* label = labelOrFallback(v, operationModeLabels, sizeof(operationModeLabels) / sizeof(operationModeLabels[0]));
+    operationmodeSens.setValue(label);
+  } else if (&request == &dpManualMode) {
+    uint8_t v = value;
+    const char* label = labelOrFallback(v, manualModeLabels, sizeof(manualModeLabels) / sizeof(manualModeLabels[0]));
+    manualmodeSens.setValue(label);
+    selectManualMode.setState(v);
+  } else if (&request == &dpTempRaumSoll) {
+    float t = value;
+    RaumSollTempSens.setState(t);
+    HVACwaermepumpe.setTargetTemperature(t);
+  } else if (&request == &dpTempRaumSollRed) {
+    float t = value;
+    RaumSollRedSens.setState(t);
+  } else if (&request == &dpTempWWSoll) {
+    float t = value;
+    WWtempSollSens.setState(t);
+  } else if (&request == &dpTempWWSoll2) {
+    float t = value;
+    WWtempSoll2Sens.setState(t);
+  } else if (&request == &dpTempHystWWSoll) {
+    float t = value;
+    HystWWsollSens.setState(t);
+  } else if (&request == &dpTempHKniveau) {
+    float t = value;
+    HKniveauSens.setState(t);
+  } else if (&request == &dpTempHKNeigung) {
+    float t = value;
+    HKneigungSens.setState(t);
+  }
 }
 
-//** voids VitoWIFI************************************************
-
-void tempOutsideCallbackHandler(const IDatapoint& dp, DPValue value) {
-  AussenTempSens.setValue(value.getFloat());
-  WebSerial.println("tmpAu");
-}
-void tempWWobenCallbackHandler(const IDatapoint& dp, DPValue value) {
-  WWtempObenSens.setValue(value.getFloat());
-  WebSerial.println("WWo");
-}
-
-void tempVorlaufSollCallbackHandler(const IDatapoint& dp, DPValue value) {
-  VorlaufTempSetSens.setValue(value.getFloat());
-  // WebSerial.println("VLsoll");
-}
-void tempVorlaufCallbackHandler(const IDatapoint& dp, DPValue value) {
-    VorlaufTempSens.setValue(value.getFloat());
-    HVACwaermepumpe.setCurrentTemperature(value.getFloat());
-    // WebSerial.println("VL");
-}
-void tempRuecklaufCallbackHandler(const IDatapoint& dp, DPValue value) {
-  RuecklaufTempSens.setValue(value.getFloat());
-  // WebSerial.println("RL");
-}
-void compFreqCallbackHandler(const IDatapoint& dp, DPValue value) {
-  CompFrequencySens.setValue(value.getU8());
-  // WebSerial.println("CompFreq");
-}
-
-void EHeizStufe1CallbackHandler(const IDatapoint& dp, DPValue value) {
-   eHeiz1 = value.getU8();
-}
-void EHeizStufe2CallbackHandler(const IDatapoint& dp, DPValue value) {
-      eHeiz2 = eHeiz1 + (2 * value.getU8());
-      RelEHeizStufeSens.setValue(eHeiz2); 
-      // WebSerial.println("Eheiz2");
-       
-      if (eHeiz2) {
-        HVACwaermepumpe.setAuxState(true);        
-      } else {
-        HVACwaermepumpe.setAuxState(false);        
-      }
-}
-
-
-//------------------------------------------------------------------
-
-void heizkreisPumpeCallbackHandler(const IDatapoint& dp, DPValue value) {
-      heizkreispumpeSens.setState(value.getU8()); 
-}
-void WWzirkPumpeCallbackHandler(const IDatapoint& dp, DPValue value) {
-      WWzirkulationspumpeSens.setState(value.getU8()); 
-}
-void RelVerdichterCallbackHandler(const IDatapoint& dp, DPValue value) {
-      uint8_t _val = value.getU8();
-      RelVerdichterSens.setState(_val); 
-      // WebSerial.print("Verdichter - ");
-      // WebSerial.println(_val);
-      if (_val) {   
-        HVACwaermepumpe.setMode(HAHVAC::HeatMode);
-      } else {
-        HVACwaermepumpe.setMode(HAHVAC::OffMode);
-      }    
-}
-void RelPrimaerquelleCallbackHandler(const IDatapoint& dp, DPValue value) {
-      RelPrimaerquelleSens.setState(value.getU8()); 
-      // WebSerial.print("Brunnenpump - ");
-      // WebSerial.println(value.getU8());
-}
-void RelSekundaerPumpeCallbackHandler(const IDatapoint& dp, DPValue value) {
-      RelSekundaerPumpeSens.setState(value.getU8());
-      // WebSerial.print("Sek.pump - ");
-      // WebSerial.println(value.getU8()); 
-}
-void ventilHeizenWWCallbackHandler(const IDatapoint& dp, DPValue value) {
-      bool _val = value.getU8();
-      if (_val) {
-         ventilHeizenWWSens.setValue("WW"); 
-      } else {
-         ventilHeizenWWSens.setValue("Heizen");
-      }
-}
-void operationmodeCallbackHandler(const IDatapoint& dp, DPValue value) {
-     int _val = value.getU8();
-     String _str =  opmodes[_val];
-     char _buf[21];
-     _str.toCharArray(_buf, 21);
-     operationmodeSens.setValue(_buf);
-}
-void manualModeCallbackHandler(const IDatapoint& dp, DPValue value) {
-     int _val = value.getU8();
-     String _str =  manMode[_val];
-     char _buf[12];
-     _str.toCharArray(_buf, 12);
-     manualmodeSens.setValue(_buf); 
-     selectManualMode.setState(_val);    // setState(index)   
-}
-
-
-void tempRaumSollCallbackHandler(const IDatapoint& dp, DPValue value) {
-     float _val = value.getFloat();
-     RaumSollTempSens.setState(_val);
-     HVACwaermepumpe.setTargetTemperature(_val);
-}
-
-void tempRaumSollRedCallbackHandler(const IDatapoint& dp, DPValue value) {
-     RaumSollRedSens.setState(value.getFloat());
-}
-
-void tempWWsollCallbackHandler(const IDatapoint& dp, DPValue value) {
-     WWtempSollSens.setState(value.getFloat());
-}
-
-void tempWWsoll2CallbackHandler(const IDatapoint& dp, DPValue value) {
-     WWtempSoll2Sens.setState(value.getFloat());
-}
-
-void tempHystWWsollCallbackHandler(const IDatapoint& dp, DPValue value) {
-     HystWWsollSens.setState(value.getFloat());
-}
-
-void tempHKniveauCallbackHandler(const IDatapoint& dp, DPValue value) {
-     HKniveauSens.setState(value.getFloat());
-}
-
-void tempHKneigungCallbackHandler(const IDatapoint& dp, DPValue value) {
-     HKneigungSens.setState(value.getFloat());
-}
-
-
-//*********************************************************************
-void globalCallbackHandler(const IDatapoint& dp, DPValue value) {
-  char value_str[15] = {0};
-  value.getString(value_str, sizeof(value_str));
-  // WebSerial.println(value_str);
+void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
+  WebSerial.print("VitoWiFi error for ");
+  WebSerial.print(request.name());
+  WebSerial.print(": ");
+  WebSerial.println(static_cast<int>(error));
 }
 
 //** other voids ************************************************

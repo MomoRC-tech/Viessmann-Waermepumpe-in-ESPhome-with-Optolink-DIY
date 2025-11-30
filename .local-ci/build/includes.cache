@@ -1,0 +1,1197 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\cores\\esp8266"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\variants\\d1_mini"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "ESP8266WiFi.h",
+    "Includepath": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "ESPAsyncTCP.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESPAsyncTCP\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "ESPAsyncWebServer.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "Hash.h",
+    "Includepath": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\Hash\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "ElegantOTA.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ElegantOTA\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "LittleFS.h",
+    "Includepath": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\LittleFS\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "VitoWiFi.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "SoftwareSerial.h",
+    "Includepath": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\SoftwareSerial\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "FastLED.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "WebSerial.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\WebSerial\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "ArduinoHA.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\build\\sketch\\Vitocal_basic-esp8266-Bartels.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\BearSSLHelpers.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\CertStoreBearSSL.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFi.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiAP.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiGeneric.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiGratuitous.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiMulti.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiSTA-WPS.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiSTA.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\ESP8266WiFiScan.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\WiFiClient.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\WiFiClientSecureBearSSL.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\WiFiServer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\WiFiServerSecureBearSSL.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\WiFiUdp.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\ESP8266WiFi\\src\\enable_wifi_at_boot_time.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESPAsyncTCP\\src\\AsyncPrinter.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESPAsyncTCP\\src\\ESPAsyncTCP.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESPAsyncTCP\\src\\ESPAsyncTCPbuffer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESPAsyncTCP\\src\\SyncClient.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESPAsyncTCP\\src\\tcp_axtls.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncEventSource.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncJson.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncWebHeader.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncWebServerRequest.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\AsyncWebSocket.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\BackPort_SHA1Builder.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\ChunkPrint.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\Middleware.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebAuthentication.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebHandlers.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebRequest.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebResponses.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ESP_Async_WebServer\\src\\WebServer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\Hash\\src\\Hash.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ElegantOTA\\src\\ElegantOTA.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\ElegantOTA\\src\\elop.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\LittleFS\\src\\LittleFS.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\LittleFS\\src\\lfs.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\LittleFS\\src\\lfs_util.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Constants.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Datapoint\\ConversionHelpers.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Datapoint\\Converter.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Datapoint\\Datapoint.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\GWG\\GWG.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\GWG\\PacketGWG.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Interface\\HardwareSerialInterface.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Interface\\LinuxSerialInterface.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\Interface\\SoftwareSerialInterface.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\VS1\\PacketVS1.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\VS1\\VS1.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\VS2\\PacketVS2.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\VS2\\ParserVS2.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\VitoWiFi\\src\\VS2\\VS2.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.1.2\\libraries\\SoftwareSerial\\src\\SoftwareSerial.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\FastLED.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\bitswap.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\cled_controller.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\colorpalettes.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\crgb.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\allocator.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\async.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\audio.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\audio_input.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\audio_reactive.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\bitset.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\blur.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\bytestreammemory.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\colorutils.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\corkscrew.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\crgb_hsv16.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\downscale.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\ease.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\engine_events.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\fetch.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\fft.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\fft_impl.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\file_system.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\fill.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\gamma.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\gradient.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\hsv16.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\id_tracker.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\io.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\istream.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\json.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\leds.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\line_simplification.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\noise_woryley.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\ostream.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\ptr.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\random.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\raster_sparse.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\rectangular_draw_buffer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\referent.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\rgbw.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\screenmap.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\sin32.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\splat.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\str.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\str_ui.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\strstream.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\stub_main.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\task.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\tile2x2.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\time.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\time_alpha.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\transform.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\type_traits.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\ui.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\upscale.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\wave_simulation.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\wave_simulation_real.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\xmap.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\xymap.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\xypath.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\xypath_impls.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fl\\xypath_renderer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\2d\\blend.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\2d\\luminova.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\2d\\noisepalette.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\2d\\scale_up.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\2d\\wave.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\detail\\fx_layer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\frame.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\fx_engine.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\time.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\video\\frame_interpolator.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\video\\frame_tracker.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\video\\pixel_stream.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\video\\video_impl.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\fx\\video.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\hsv2rgb.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\lib8tion.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\noise.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\adafruit\\clockless.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\arm\\k20\\clockless_objectfled.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\arm\\mgm240\\fastpin_arm_mgm240.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\avr\\avr_millis_timer_source.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\compile_test.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\audio\\audio.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\audio\\sound_util.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\clockless_i2s_esp32s3.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\i2s\\i2s_esp32dev.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\rmt_4\\idf4_rmt.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\rmt_4\\idf4_rmt_impl.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\rmt_5\\idf5_rmt.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\rmt_5\\strip_rmt.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\esp\\32\\spi_ws2812\\strip_spi.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\posix\\socket_posix.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\active_strip_data\\active_strip_data.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\audio.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\audio_internal.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\button.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\checkbox.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\description.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\dropdown.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\help.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\json_console.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\number_field.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\slider.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\title.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\ui.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\ui_internal.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\shared\\ui\\json\\ui_manager.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\stub\\Arduino.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\stub\\led_sysdefs_stub.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\stub\\time_stub.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\active_strip_data.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\engine_listener.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\entry_point.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\fastspi_wasm.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\fs_wasm.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\js.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\js_bindings.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\js_fetch.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\timer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\wasm\\ui.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms\\win\\socket_win.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\platforms.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\power_mgt.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\sensors\\button.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\sensors\\digital_pin.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\sensors\\pir.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\simplex.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\cq_kernel\\cq_kernel.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\cq_kernel\\kiss_fft.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\cq_kernel\\kiss_fftr.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\espressif\\led_strip\\src\\led_strip_api.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\espressif\\led_strip\\src\\led_strip_rmt_dev.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\espressif\\led_strip\\src\\led_strip_rmt_encoder.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\espressif\\led_strip\\src\\led_strip_spi_dev.c",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\third_party\\object_fled\\src\\OjectFLED.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\transpose8x1_noinline.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\FastLED\\src\\wiring.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\WebSerial\\src\\WebSerial.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\WebSerial\\src\\wslp.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\HADevice.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\HAMqtt.cpp",
+    "Include": "PubSubClient.h",
+    "Includepath": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\PubSubClient\\src"
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\HAMqtt.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HABaseDeviceType.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HABinarySensor.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HAButton.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HACamera.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HACover.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HADeviceTracker.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HADeviceTrigger.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HAFan.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HAHVAC.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HALight.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HALock.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HANumber.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HAScene.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HASelect.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HASensor.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HASensorNumber.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HASwitch.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\device-types\\HATagScanner.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\mocks\\PubSubClientMock.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\utils\\HADictionary.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\utils\\HANumeric.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\utils\\HASerializer.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\utils\\HASerializerArray.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\home-assistant-integration\\src\\utils\\HAUtils.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "C:\\Users\\Momo\\Documents\\Arduino\\libraries\\PubSubClient\\src\\PubSubClient.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
