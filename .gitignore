@@ -1,0 +1,29 @@
+# Build artifacts
+.local-ci/
+*.bin
+*.elf
+*.map
+*.d
+*.o
+*.a
+*.ld
+*.opt
+compile_commands.json
+build.options.json
+includes.cache
+libraries.cache
+
+# Arduino/PlatformIO
+.pio/
+.build/
+*.pioenv*
+*.piolibdeps*
+
+# VS Code / IDE metadata
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db

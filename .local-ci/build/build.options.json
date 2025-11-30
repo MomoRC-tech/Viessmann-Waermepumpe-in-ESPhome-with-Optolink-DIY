@@ -1,9 +1,0 @@
-{
-  "additionalFiles": "..\\..,..\\..,..\\..,..\\..",
-  "compiler.optimization_flags": "",
-  "customBuildProperties": "compiler.cpp.extra_flags=-DELEGANTOTA_USE_ASYNC_WEBSERVER=1,compiler.c.extra_flags=-DELEGANTOTA_USE_ASYNC_WEBSERVER=1,build.warn_data_percentage=75",
-  "fqbn": "esp8266:esp8266:d1_mini",
-  "hardwareFolders": "C:\\Users\\Momo\\AppData\\Local\\Arduino15\\packages",
-  "otherLibrariesFolders": "C:\\Users\\Momo\\Documents\\Arduino\\libraries",
-  "sketchLocation": "C:\\Users\\Momo\\Documents\\30_Coding\\01_github local\\Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY\\.local-ci\\Vitocal_basic-esp8266-Bartels"
-}

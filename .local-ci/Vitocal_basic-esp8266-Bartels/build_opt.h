@@ -1,2 +1,0 @@
-#pragma once
-#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
