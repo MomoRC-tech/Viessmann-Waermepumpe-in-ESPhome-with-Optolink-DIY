@@ -20,6 +20,22 @@ jobs:
         with:
           version: 0.35.3
 
+      - name: Fallback: Manual install Arduino CLI if setup failed
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Setup action failed; installing Arduino CLI manually..."
+          PLATFORM="linux64"
+          VERSION="0.35.3"
+          URL="https://downloads.arduino.cc/arduino-cli/arduino-cli_${VERSION}_${PLATFORM}.tar.gz"
+          echo "Downloading ${URL}"
+          curl -fsSL "${URL}" -o arduino-cli.tgz
+          tar -xzf arduino-cli.tgz
+          sudo mv arduino-cli /usr/local/bin/arduino-cli
+          echo "Arduino CLI installed at: $(command -v arduino-cli)"
+          arduino-cli version || true
+
       - name: Configure Arduino CLI
         run: |
           arduino-cli config init --overwrite
@@ -31,6 +47,9 @@ jobs:
           echo "github.ref: ${{ github.ref }}"
           echo "github.ref_name: ${{ github.ref_name }}"
           echo "github.sha: ${{ github.sha }}"
+
+      - name: Arduino CLI version
+        run: arduino-cli version || true
 
       - name: Lint Arduino sketch
         run: |
