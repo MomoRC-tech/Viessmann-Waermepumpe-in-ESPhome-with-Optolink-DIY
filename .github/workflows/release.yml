@@ -16,26 +16,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Arduino CLI
-        id: setup_cli
-        continue-on-error: true
         uses: arduino/setup-arduino-cli@v1
         with:
           version: 0.35.3
 
-      - name: Fallback: Manual install Arduino CLI if setup failed
-        if: ${{ steps.setup_cli.outcome == 'failure' }}
-        shell: bash
+      - name: Ensure Arduino CLI present (fallback install if missing)
         run: |
           set -euo pipefail
-          echo "Setup action failed; installing Arduino CLI manually..."
-          PLATFORM="linux64"
-          VERSION="0.35.3"
-          URL="https://downloads.arduino.cc/arduino-cli/arduino-cli_${VERSION}_${PLATFORM}.tar.gz"
-          echo "Downloading ${URL}"
-          curl -fsSL "${URL}" -o arduino-cli.tgz
-          tar -xzf arduino-cli.tgz
-          sudo mv arduino-cli /usr/local/bin/arduino-cli
-          echo "Arduino CLI installed at: $(command -v arduino-cli)"
+          if ! command -v arduino-cli >/dev/null 2>&1; then
+            echo "arduino-cli not found; installing manually..."
+            PLATFORM="linux64"
+            VERSION="0.35.3"
+            URL="https://downloads.arduino.cc/arduino-cli/arduino-cli_${VERSION}_${PLATFORM}.tar.gz"
+            echo "Downloading ${URL}"
+            curl -fsSL "${URL}" -o arduino-cli.tgz
+            tar -xzf arduino-cli.tgz
+            sudo mv arduino-cli /usr/local/bin/arduino-cli
+          else
+            echo "arduino-cli already available: $(command -v arduino-cli)"
+          fi
           arduino-cli version || true
 
       - name: Configure Arduino CLI
