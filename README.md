@@ -1,31 +1,68 @@
 # Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY
-Connect Viessmann Waermepumpe to Home Assistant as ESPhome device with Optolink DIY
+Connect a Viessmann heat pump via DIY Optolink to Home Assistant (MQTT) using VitoWiFi v3, grouped polling, WebSerial, and ElegantOTA.
 
 ## Project overview
 
-This project uses an ESP8266 D1 mini (Arduino framework) to connect a DIY Optolink adapter to a Viessmann Vitocal 343-G heat pump. The ESP8266 reads and writes data over a software serial interface and exposes it to Home Assistant via ESPHome.
+This project uses an ESP8266 D1 mini (Arduino framework) to connect a DIY Optolink adapter to a Viessmann Vitocal 343-G heat pump. Communication to the heat pump is handled by the VitoWiFi v3 library over SoftwareSerial. Home Assistant integration is done via MQTT using ArduinoHA entities defined in `HA_mqtt_addin.h`.
 
-### Hardware and wiring
+The codebase was migrated from older VitoWiFi v2-style datapoints to VitoWiFi v3. Datapoints and polling are grouped, with adjustable intervals from Home Assistant. OTA updates and a lightweight debug console are provided via ElegantOTA and WebSerial on an async web server.
+
+### Hardware and Wiring
 
 - **Microcontroller:** ESP8266 D1 mini
-- **Communication to Optolink:** SoftwareSerial
-	- `D1` → `GPIO5` (SoftwareSerial RX)
-	- `D2` → `GPIO4` (SoftwareSerial TX)
+- **Optolink link (SoftwareSerial):**
+  - RX: `D1` (GPIO5)
+  - TX: `D2` (GPIO4)
 - **Optolink adapter:** DIY design based on the openv project
 	- Base schematic: https://github.com/openv/openv/wiki/Bauanleitung-ESP8266
 	- IR send diode: `L-7104SF4BT` (replaces the diode from the reference design)
 
-The schematic largely follows the openv ESP8266 build instructions, with the above IR diode substitution and wiring of the ESP8266 D1 mini pins D1/D2 for the SoftwareSerial connection to the Optolink transceiver.
+Note: The ESP8266 RX pin uses an internal pull-up in code to improve signal stability at 4800 baud 8E1.
 
-### Software and libraries
+The schematic largely follows the openv ESP8266 instructions and typical Optolink transceiver wiring. Ensure the IR transceiver is aligned properly on the Viessmann service port.
+
+### Software and Libraries
 
 - **Platform:** Arduino (ESP8266 core) on a D1 mini
-- **Integration:** ESPHome with MQTT connection to Home Assistant running on a Raspberry Pi 4 (and optionally the ESPHome native API)
-- **Viessmann communication:** `vitowifi` library (latest version)
-	- Note: the `vitowifi` API changed between versions `v2.x` and `v3.x`. This project is designed for the latest `vitowifi` (3.x) API, so be careful when looking at older examples or sketches that still use the 2.x API.
+- **Viessmann communication:** `VitoWiFi v3` using the Viessmann “KW” protocol (named “VS1” within VitoWiFi)
+- **Home Assistant integration:** MQTT via `ArduinoHA`
+- **OTA and web:** `ESP Async WebServer` + `ElegantOTA` (async mode) + `WebSerial`
 
-The main goals are:
+Notes:
+- VitoWiFi v3 renamed and regrouped various datapoints versus v2. This repo uses v3-style datapoints declared in `Vitocal_datapoints.h`.
+- We use SoftwareSerial on ESP8266 at 4800 baud, 8E1 (`SWSERIAL_8E1`).
+- Operation and manual mode labels are localized in German (see `HA_mqtt_addin.h`).
 
-- Establish reliable two-way communication with the Viessmann Vitocal 343-G via the DIY Optolink adapter.
-- Use the `vitowifi` library to read sensor values and control selected parameters of the heat pump.
-- Make these values and controls available in Home Assistant through ESPHome.
+### Features
+
+- Reliable two-way communication with the Viessmann Vitocal 343-G via Optolink using VitoWiFi v3 (protocol “VS1”/KW).
+- Grouped polling scheduler with HA-adjustable intervals (fast/medium/slow) defined in `Vitocal_polling.h` and exposed in HA via `HA_mqtt_addin.h`.
+- Home Assistant entities (numbers/selects/switches) bound to datapoints and commands.
+- Web UI on the ESP8266 providing ElegantOTA and a WebSerial console for debugging.
+- German labels for operation modes and manual modes restored for UI consistency.
+
+### Async WebServer, ElegantOTA, and WebSerial
+- The project uses `ESP Async WebServer` to avoid blocking the main loop and to serve ElegantOTA and WebSerial endpoints concurrently.
+- `ElegantOTA` in async mode requires defining the async build flag (e.g., `ELEGANTOTA_USE_ASYNC_WEBSERVER=1`) so its handlers link against the async stack.
+- `WebSerial` provides a browser-based serial console for quick diagnostics; VitoWiFi and app logs can be viewed without a physical USB serial connection.
+
+### Protocol
+- Viessmann “KW” protocol is used for communication; in VitoWiFi this protocol is named “VS1”. Ensure VitoWiFi is configured to operate with VS1 when building.
+
+### Build and CI
+- Local builds use Arduino CLI with the necessary compiler flags for ElegantOTA async.
+- CI is provided via GitHub Actions in `.github/workflows/ci.yml` to verify builds against VitoWiFi v3 and required libraries.
+
+### Key Files
+- `Vitocal_basic-esp8266-Bartels.ino`: Main sketch, async web server setup, VitoWiFi init, OTA/WebSerial, and polling loop.
+- `Vitocal_datapoints.h`: VitoWiFi v3 datapoints and access helpers.
+- `Vitocal_polling.h`: Grouped polling state and intervals.
+- `HA_mqtt_addin.h`: Home Assistant MQTT entities and callbacks.
+
+### Useful Links
+- Schematic (generic): https://github.com/openv/openv/wiki/ESPHome-Optolink
+- 3D housing (Wemos D1 mini enclosure): https://makerworld.com/de/models/1567595-viessmann-optolink-esp8266-wemos-d1-mini-enclosure#profileId-1648098
+- Related documentation:
+	- https://github.com/openv/openv/wiki/Bauanleitung-ESP8266
+	- https://github.com/openv/openv/wiki/Bauanleitung-LAN-Ethernet
+- VitoWiFi project: https://github.com/bertmelis/VitoWiFi
