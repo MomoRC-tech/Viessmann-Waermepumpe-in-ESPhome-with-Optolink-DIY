@@ -72,6 +72,9 @@ Notes:
 - `Vitocal_polling.h`: Grouped polling state and intervals.
 - `HA_mqtt_addin.h`: Home Assistant MQTT entities and callbacks.
 
+### Folder Layout
+All Arduino sources now reside in the directory `Vitocal_basic-esp8266-Bartels/` (sketch + headers). Workflows (`ci.yml`, `release.yml`) were updated to compile and package from this folder. Update any local Arduino IDE sketch references accordingly.
+
 ### Useful Links
 - Schematic (generic): https://github.com/openv/openv/wiki/ESPHome-Optolink
 - 3D housing (Wemos D1 mini enclosure): https://makerworld.com/de/models/1567595-viessmann-optolink-esp8266-wemos-d1-mini-enclosure#profileId-1648098
