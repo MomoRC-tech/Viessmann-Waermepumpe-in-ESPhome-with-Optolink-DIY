@@ -48,11 +48,3 @@ VitoWiFi::Datapoint dpRelEHeizStufe1    ("RelEHeizStufe1",       0x0488, 1, Vito
 VitoWiFi::Datapoint dpRelEHeizStufe2    ("RelEHeizStufe2",       0x0489, 1, VitoWiFi::noconv);
 
 VitoWiFi::Datapoint dpStoerung          ("stoerung",             0x0491, 1, VitoWiFi::noconv);
-
-// Simple representatives for old group-based polling
-VitoWiFi::Datapoint dpStatus3_1 ("status3_1", 0x0491, 1, VitoWiFi::noconv); // e.g. stoerung
-VitoWiFi::Datapoint dpTemp2_1   ("temp2_1",   0x2000, 2, VitoWiFi::div10);  // e.g. RaumSoll
-VitoWiFi::Datapoint dpStatus1_1 ("status1_1", 0x048D, 1, VitoWiFi::noconv); // e.g. heizkreispumpe
-VitoWiFi::Datapoint dpStatus2_1 ("status2_1", 0x0480, 1, VitoWiFi::noconv); // e.g. RelVerdichter
-VitoWiFi::Datapoint dpTemp1_1   ("temp1_1",   0x0101, 2, VitoWiFi::div10);  // e.g. AussenTemp
-VitoWiFi::Datapoint dpTemp3_1   ("temp3_1",   0x2006, 2, VitoWiFi::div10);  // e.g. HKniveau
