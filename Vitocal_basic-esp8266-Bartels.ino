@@ -69,13 +69,12 @@ IPAddress       gateway(192, 168, 0, 1);
 IPAddress       subnet(255, 255, 0, 0);
 IPAddress       primaryDNS(192, 168, 0, 1);   //optional
 IPAddress       secondaryDNS(192, 168, 0, 1);   //optional
-const char*     googleAddress = "www.google.com";
-int             pingResult;
 AsyncWebServer    server(80);
 AsyncEventSource  events("/events");
 
 //** debug
-boolean dbgSer = true;
+// Debug logging toggle
+static boolean dbgSer = true;
 
 
 // home assistant-------------------------------------------------------------
@@ -102,11 +101,12 @@ HAMqtt mqtt(client, device, 30);
 #include "HA_mqtt_addin.h"
 
 // other
-int     count     = 0;
-int     count_tmp = 0;
-int     eHeiz1 = 0;
-int     eHeiz2 = 0;
-boolean toggle = false;
+// Loop bookkeeping and simple runtime state
+static int     count     = 0;
+static int     count_tmp = 0;
+static int     eHeiz1    = 0;
+static int     eHeiz2    = 0;
+static boolean toggle    = false;
 // Error handling and health monitoring
 volatile uint32_t vitoErrorCount = 0;
 volatile uint32_t vitoConsecutiveErrors = 0;
@@ -114,9 +114,13 @@ volatile uint32_t vitoErrorThreshold = 30;   // threshold for consecutive errors
 static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 
-VitoPollGroupState vitoFastState   = {0, 0, 0, 20000UL};  // default 20s
-VitoPollGroupState vitoMediumState = {0, 0, 0, 40000UL};  // default 40s
-VitoPollGroupState vitoSlowState   = {0, 0, 0, 60000UL};  // default 60s
+// Default group intervals tuned for stability vs. throughput
+static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 20000UL; // 20s: relays/pumps/compressor/status
+static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 40000UL; // 40s: temperatures
+static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 60000UL; // 60s: setpoints/hysteresis/heating curve
+VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
+VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
+VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 
 static const char* const operationModeLabels[] = {
   "Abschaltbetrieb",
@@ -241,8 +245,10 @@ void loop() {
   // read sequentially with at least minRequestGapMs between requests.
   // A new round for a group only starts after its intervalMs has passed.
 
-  // minimum gap between individual VitoWiFi read() calls
-  const uint32_t minRequestGapMs = 500; // adjust to 1000 if you prefer 1s
+  // Minimum gap between individual VitoWiFi read() calls.
+  // Balances Optolink stability (avoid flooding) vs. responsiveness.
+  static const uint32_t DEFAULT_MIN_REQUEST_GAP_MS = 500; // ms
+  const uint32_t minRequestGapMs = DEFAULT_MIN_REQUEST_GAP_MS;
 
   pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   minRequestGapMs);
   pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, minRequestGapMs);
