@@ -15,10 +15,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Arduino CLI (latest)
-        uses: arduino/setup-arduino-cli@v1
-        with:
-          version: latest
+      - name: Install Arduino CLI (latest)
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s - latest
+          sudo mv bin/arduino-cli /usr/local/bin/arduino-cli
+          arduino-cli version
 
       - name: Lint sketch
         run: arduino-cli lint "Vitocal_basic-esp8266-Bartels.ino" || true
