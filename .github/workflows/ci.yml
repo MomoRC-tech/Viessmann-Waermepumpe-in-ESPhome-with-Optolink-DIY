@@ -31,13 +31,16 @@ jobs:
       - name: Install libraries
         run: |
           arduino-cli lib update-index
-          arduino-cli lib install --git-url https://github.com/dawidchyrzynski/arduino-home-assistant.git
           arduino-cli lib install "FastLED"
           arduino-cli lib install "ESP Async WebServer"
           arduino-cli lib install "ESPAsyncTCP"
           arduino-cli lib install "ElegantOTA"
           arduino-cli lib install "WebSerial"
-          arduino-cli lib install --git-url https://github.com/openv/vitowifi.git
+          mkdir -p "$HOME/Arduino/libraries"
+          rm -rf "$HOME/Arduino/libraries/ArduinoHA"
+          git clone --depth 1 https://github.com/dawidchyrzynski/arduino-home-assistant.git "$HOME/Arduino/libraries/ArduinoHA"
+          rm -rf "$HOME/Arduino/libraries/VitoWiFi"
+          git clone --depth 1 https://github.com/openv/vitoWiFi.git "$HOME/Arduino/libraries/VitoWiFi"
 
       - name: Compile (ESP8266 D1 mini)
         run: |
