@@ -29,9 +29,6 @@ jobs:
           arduino-cli core install esp8266:esp8266
 
       - name: Install libraries
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
           arduino-cli lib update-index
@@ -40,11 +37,14 @@ jobs:
           arduino-cli lib install "ESPAsyncTCP"
           arduino-cli lib install "ElegantOTA"
           arduino-cli lib install "WebSerial"
+          # ArduinoHA not (yet) in official index: clone repo
           mkdir -p "$HOME/Arduino/libraries"
           rm -rf "$HOME/Arduino/libraries/ArduinoHA"
-          git clone --depth 1 "https://${GH_ACTOR}:${GH_TOKEN}@github.com/dawidchyrzynski/arduino-home-assistant.git" "$HOME/Arduino/libraries/ArduinoHA"
+          git clone --depth 1 https://github.com/dawidchyrzynski/arduino-home-assistant.git "$HOME/Arduino/libraries/ArduinoHA"
+          # Correct VitoWiFi repository (previously wrong: openv/vitowifi does not exist)
           rm -rf "$HOME/Arduino/libraries/VitoWiFi"
-          git clone --depth 1 "https://${GH_ACTOR}:${GH_TOKEN}@github.com/openv/vitowifi.git" "$HOME/Arduino/libraries/VitoWiFi"
+          git clone --depth 1 https://github.com/bertmelis/VitoWiFi.git "$HOME/Arduino/libraries/VitoWiFi"
+          ls -1 "$HOME/Arduino/libraries" || true
 
       - name: Compile (ESP8266 D1 mini)
         run: |
