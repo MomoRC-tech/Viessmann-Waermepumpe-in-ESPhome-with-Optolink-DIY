@@ -18,6 +18,7 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
   // only if you really use ping – right now the ping function is commented out:
   // #include <ESP8266Ping.h> 
   #include <ESPAsyncTCP.h>
+  #include <SoftwareSerial.h>
 #endif
 
 // #include <HTTPClient.h>
@@ -32,8 +33,17 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
 #include <FastLED.h>
 #include <WebSerial.h>
 
-// vitowifi instance (VS1 protocol on ESP8266 HW serial)
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial); 
+#if defined(ESP8266)
+static constexpr uint8_t OPTOLINK_RX_PIN = D1;  // GPIO5
+static constexpr uint8_t OPTOLINK_TX_PIN = D2;  // GPIO4
+SoftwareSerial optolinkSerial(OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
+VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
+#elif defined(ESP32)
+HardwareSerial& optolinkSerial = Serial1;
+VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
+#else
+VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
+#endif
 
 // reset reasons
 #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
@@ -263,10 +273,13 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
 //************************************************************
 void setupVitoWifi () {
   // initialise optolink serial and VitoWiFi v3
-  #ifdef ESP8266
-    Serial.begin(4800, SERIAL_8E1);
+  #if defined(ESP8266)
+    optolinkSerial.begin(4800, SWSERIAL_8E1, OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
+    optolinkSerial.enableRxGPIOPullUp(true);
   #elif defined(ESP32)
-    Serial1.begin(4800, SERIAL_8E1, 16, 17);
+    optolinkSerial.begin(4800, SERIAL_8E1, 16, 17);
+  #else
+    Serial.begin(4800, SERIAL_8E1);
   #endif
 
   vito.onResponse(onVitoResponse);
