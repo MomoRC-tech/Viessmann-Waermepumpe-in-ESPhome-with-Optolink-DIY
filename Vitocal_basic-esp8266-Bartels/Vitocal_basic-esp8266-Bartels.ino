@@ -61,7 +61,11 @@ VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
 #endif
  
 //** webserver************************************************
-#include "secrets.h"  // defines WIFI_SSID, WIFI_PASSWORD, MQTT_USER, MQTT_PASS
+#if __has_include("secrets.h")
+#include "secrets.h"  // project-local, git-ignored real credentials
+#else
+#include "secrets.example.h" // fallback example values so CI/builds still compile
+#endif
 const char*     PARAM_INPUT_1 = "output";
 const char*     PARAM_INPUT_2 = "state";
 IPAddress       local_IP(192, 168, 0, 65);
