@@ -21,7 +21,7 @@ jobs:
           version: 0.35.3
 
       - name: Fallback: Manual install Arduino CLI if setup failed
-        if: failure()
+        if: ${{ failure() }}
         shell: bash
         run: |
           set -euo pipefail
