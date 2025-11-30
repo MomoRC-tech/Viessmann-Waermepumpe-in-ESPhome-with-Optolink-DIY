@@ -17,8 +17,10 @@ jobs:
 
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v1
+        continue-on-error: true
         with:
           version: 0.35.3
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Ensure Arduino CLI present (fallback install if missing)
         run: |
