@@ -83,11 +83,6 @@ IPAddress       secondaryDNS(192, 168, 0, 1);   //optional
 AsyncWebServer    server(80);
 AsyncEventSource  events("/events");
 
-//** debug
-// Debug logging toggle
-static boolean dbgSer = true;
-
-
 // home assistant-------------------------------------------------------------
 #include <ArduinoHA.h>
 
@@ -455,10 +450,6 @@ void myStartAsyncServer() {
       inputMessage1 = "No message sent";
       inputMessage2 = "No message sent";
     }
-    if (dbgSer) WebSerial.print("ID: ");
-    if (dbgSer)  WebSerial.print(inputMessage1);
-    if (dbgSer)  WebSerial.print(" - Set to: ");
-    if (dbgSer)  WebSerial.println(inputMessage2);
     request->send(200, "text/plain", "OK");
     
   });
