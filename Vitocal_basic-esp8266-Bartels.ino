@@ -110,7 +110,7 @@ boolean toggle = false;
 // Error handling and health monitoring
 volatile uint32_t vitoErrorCount = 0;
 volatile uint32_t vitoConsecutiveErrors = 0;
-volatile uint32_t vitoErrorThreshold = 10;   // threshold for consecutive errors (configurable via HA)
+volatile uint32_t vitoErrorThreshold = 30;   // threshold for consecutive errors (configurable via HA)
 static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 

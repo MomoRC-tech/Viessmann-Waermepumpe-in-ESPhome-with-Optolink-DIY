@@ -58,6 +58,13 @@ Notes:
 - Alternatively, consider WiFiManager or runtime configuration for production.
  - A `secrets.example.h` is provided. Copy it to `secrets.h` and set your credentials. The real `secrets.h` is ignored by git.
 
+### Diagnostics
+- Home Assistant entities for device health:
+	- `vito_error_count`: total errors within a rolling window.
+	- `vito_consecutive_errors`: current consecutive error streak.
+	- `vito_error_threshold`: configurable consecutive error threshold (default 30; range 1–100).
+- When the threshold is reached, the firmware applies a brief backoff (increases poll intervals) and reinitializes VitoWiFi.
+
 ### Key Files
 - `Vitocal_basic-esp8266-Bartels.ino`: Main sketch, async web server setup, VitoWiFi init, OTA/WebSerial, and polling loop.
 - `Vitocal_datapoints.h`: VitoWiFi v3 datapoints and access helpers.
