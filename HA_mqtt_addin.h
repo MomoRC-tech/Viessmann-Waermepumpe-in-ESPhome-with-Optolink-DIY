@@ -5,6 +5,7 @@
 #include <ArduinoHA.h>
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
+extern volatile uint32_t vitoErrorThreshold; // from main sketch
 
 //*** forward declararions ***************************************************
 void onMQTTConnected(void);
@@ -63,6 +64,11 @@ HASelect  selectManualMode     ("setManualMode");
 HANumber fastPollInterval("fastPollInterval");
 HANumber mediumPollInterval("mediumPollInterval");
 HANumber slowPollInterval("slowPollInterval");
+
+// Diagnostics: error counters and threshold
+HASensor vitoErrorCountSens("vito_error_count");
+HASensor vitoConsecErrorSens("vito_consecutive_errors");
+HANumber errorThresholdNumber("vito_error_threshold", HANumber::PrecisionP0);
 
 //###########################################################################
 // setup home assistant integration##########################################
@@ -189,6 +195,30 @@ void setupHomeAssistant() {
     fastPollInterval.setState((float)(vitoFastState.intervalMs / 1000UL));
     mediumPollInterval.setState((float)(vitoMediumState.intervalMs / 1000UL));
     slowPollInterval.setState((float)(vitoSlowState.intervalMs / 1000UL));
+
+    // diagnostics setup
+    vitoErrorCountSens.setIcon("mdi:counter");
+    vitoErrorCountSens.setName("VitoWiFi Error Count");
+    vitoConsecErrorSens.setIcon("mdi:counter");
+    vitoConsecErrorSens.setName("VitoWiFi Consecutive Errors");
+
+    errorThresholdNumber.setIcon("mdi:alert-decagram-outline");
+    errorThresholdNumber.setName("VitoWiFi Error Threshold");
+    errorThresholdNumber.setUnitOfMeasurement("");
+    errorThresholdNumber.setMin(1);
+    errorThresholdNumber.setMax(100);
+    errorThresholdNumber.setStep(1);
+    errorThresholdNumber.onCommand([](HANumeric value, HANumber* sender) {
+        if (!value.isSet() || sender == nullptr) {
+            return;
+        }
+        int v = (int)value.toFloat();
+        if (v < 1) v = 1;
+        if (v > 100) v = 100;
+        vitoErrorThreshold = (uint32_t)v;
+        sender->setState((float)v);
+    });
+    errorThresholdNumber.setState((float)vitoErrorThreshold);
 }
 
 

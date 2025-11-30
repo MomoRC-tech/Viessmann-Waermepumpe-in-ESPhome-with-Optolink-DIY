@@ -107,6 +107,12 @@ int     count_tmp = 0;
 int     eHeiz1 = 0;
 int     eHeiz2 = 0;
 boolean toggle = false;
+// Error handling and health monitoring
+volatile uint32_t vitoErrorCount = 0;
+volatile uint32_t vitoConsecutiveErrors = 0;
+volatile uint32_t vitoErrorThreshold = 10;   // threshold for consecutive errors (configurable via HA)
+static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
+uint32_t vitoErrorWindowStartMs = 0;
 
 VitoPollGroupState vitoFastState   = {0, 0, 0, 20000UL};  // default 20s
 VitoPollGroupState vitoMediumState = {0, 0, 0, 40000UL};  // default 40s
@@ -380,6 +386,33 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
   WebSerial.print(request.name());
   WebSerial.print(": ");
   WebSerial.println(static_cast<int>(error));
+
+  // Track errors: consecutive and within a window
+  uint32_t now = millis();
+  vitoConsecutiveErrors++;
+  if (vitoErrorWindowStartMs == 0 || (now - vitoErrorWindowStartMs) > vitoErrorWindowMs) {
+    vitoErrorWindowStartMs = now;
+    vitoErrorCount = 0;
+  }
+  vitoErrorCount++;
+
+  // Publish diagnostic counters to HA
+  vitoErrorCountSens.setValue(vitoErrorCount);
+  vitoConsecErrorSens.setValue(vitoConsecutiveErrors);
+
+  // Simple recovery: if too many consecutive errors, briefly pause polling and try to kick VitoWiFi
+  if (vitoConsecutiveErrors >= vitoErrorThreshold) {
+    WebSerial.println("Too many consecutive VitoWiFi errors; applying backoff and reinitializing VitoWiFi...");
+    // Backoff by delaying further reads for a short period via intervals increase
+    vitoFastState.intervalMs   = 30000UL;
+    vitoMediumState.intervalMs = 60000UL;
+    vitoSlowState.intervalMs   = 90000UL;
+    // Attempt a light reinit
+    vito.end();
+    delay(200);
+    vito.begin();
+    vitoConsecutiveErrors = 0;
+  }
 }
 
 //** other voids ************************************************
