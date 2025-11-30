@@ -27,3 +27,6 @@ libraries.cache
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local secrets
+secrets.h

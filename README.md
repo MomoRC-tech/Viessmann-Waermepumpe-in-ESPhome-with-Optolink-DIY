@@ -53,6 +53,10 @@ Notes:
 - Local builds use Arduino CLI with the necessary compiler flags for ElegantOTA async.
 - CI is provided via GitHub Actions in `.github/workflows/ci.yml` to verify builds against VitoWiFi v3 and required libraries.
 
+### Security
+- Avoid hardcoding credentials in source. This repo uses a `secrets.h` (git-ignored) that defines `WIFI_SSID`, `WIFI_PASSWORD`, `MQTT_USER`, and `MQTT_PASS`. Update `secrets.h` locally with your values.
+- Alternatively, consider WiFiManager or runtime configuration for production.
+
 ### Key Files
 - `Vitocal_basic-esp8266-Bartels.ino`: Main sketch, async web server setup, VitoWiFi init, OTA/WebSerial, and polling loop.
 - `Vitocal_datapoints.h`: VitoWiFi v3 datapoints and access helpers.

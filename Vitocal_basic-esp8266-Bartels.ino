@@ -61,8 +61,7 @@ VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
 #endif
  
 //** webserver************************************************
-const char*     ssid =          "MOMOWLAN";
-const char*     password =      "GandalfF2";
+#include "secrets.h"  // defines WIFI_SSID, WIFI_PASSWORD, MQTT_USER, MQTT_PASS
 const char*     PARAM_INPUT_1 = "output";
 const char*     PARAM_INPUT_2 = "state";
 IPAddress       local_IP(192, 168, 0, 65);
@@ -83,8 +82,8 @@ boolean dbgSer = true;
 #include <ArduinoHA.h>
 
 #define BROKER_ADDR             "homeassistant.local"    
-#define BROKER_USERNAME         "mqtt-user" 
-#define BROKER_PASSWORD         "momo1234"
+#define BROKER_USERNAME         MQTT_USER
+#define BROKER_PASSWORD         MQTT_PASS
 #define BROKER_PORT             1883
 
 #define DEVICE_NAME             "Waermepumpe_Bartels"
@@ -445,9 +444,9 @@ void myConnect2WIFI () {
   int _time;
   // initially connect to WIFI with timeout
   WebSerial.print("Connecting to ");
-  WebSerial.println(ssid);
+  WebSerial.println(WIFI_SSID);
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   }
   _time = millis();
   while (WiFi.status() != WL_CONNECTED) {
@@ -465,7 +464,7 @@ void myConnect2WIFI () {
 void myCheckWIFIcyclic () {
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.disconnect();
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   }
   if (WiFi.waitForConnectResult() == WL_CONNECTED) {
     // WIFI is connected  
