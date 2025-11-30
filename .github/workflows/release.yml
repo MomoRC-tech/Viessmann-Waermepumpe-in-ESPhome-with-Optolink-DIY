@@ -1,0 +1,61 @@
+name: Release (static checks)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+        with:
+          version: latest
+
+      - name: Configure Arduino CLI
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config set board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core update-index
+
+      - name: Lint Arduino sketch
+        run: |
+          arduino-cli lint "Vitocal_basic-esp8266-Bartels.ino" --format json --verbose
+
+      - name: Basic repo sanity checks
+        run: |
+          test -f README.md
+          test -f HA_mqtt_addin.h
+          test -f Vitocal_datapoints.h
+          test -f Vitocal_polling.h
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Prepare source zip
+        run: |
+          mkdir -p dist
+          zip -r dist/source-${{ github.ref_name }}.zip README.md Vitocal_basic-esp8266-Bartels.ino HA_mqtt_addin.h Vitocal_datapoints.h Vitocal_polling.h build_opt.h || true
+
+      - name: Upload release asset (source zip)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/source-${{ github.ref_name }}.zip
+          asset_name: source-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
