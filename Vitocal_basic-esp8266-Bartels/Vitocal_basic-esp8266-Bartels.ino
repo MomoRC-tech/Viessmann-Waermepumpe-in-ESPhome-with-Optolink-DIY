@@ -97,7 +97,7 @@ static boolean dbgSer = true;
 #define BROKER_PORT             1883
 
 #define DEVICE_NAME             "Waermepumpe_Bartels"
-#define DEVICE_SWVERSION        "0.2.4"
+#define DEVICE_SWVERSION        "0.2.5"
 #define DEVICE_MANUFACTURER     "Viessmann"
 #define DEVICE_MODEL            "Vitotronic200-WO1c-Bartels"
 

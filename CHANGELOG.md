@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented here.
 
+## [v0.2.5] - 2025-11-30
+- Version constant aligned with release tag (DEVICE_SWVERSION 0.2.5)
+- No functional code changes beyond version bump
+
 ## [v0.2.4] - 2025-11-30
 - Consolidated ElegantOTA async configuration (single guarded define in sketch)
 - Removed redundant CI compile flag for async OTA mode
