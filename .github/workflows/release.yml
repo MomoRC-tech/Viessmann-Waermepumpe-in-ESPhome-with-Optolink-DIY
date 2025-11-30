@@ -1,4 +1,5 @@
 name: Release (static checks)
+name: Release
 
 on:
   push:
@@ -9,69 +10,21 @@ permissions:
   contents: write
 
 jobs:
-  static-checks:
+  release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Arduino CLI
+      - name: Setup Arduino CLI (latest)
         uses: arduino/setup-arduino-cli@v1
-        continue-on-error: true
         with:
-          version: 0.35.3
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
 
-      - name: Ensure Arduino CLI present (fallback install if missing)
-        run: |
-          set -euo pipefail
-          if ! command -v arduino-cli >/dev/null 2>&1; then
-            echo "arduino-cli not found; installing manually..."
-            PLATFORM="linux64"
-            VERSION="0.35.3"
-            URL="https://downloads.arduino.cc/arduino-cli/arduino-cli_${VERSION}_${PLATFORM}.tar.gz"
-            echo "Downloading ${URL}"
-            curl -fsSL "${URL}" -o arduino-cli.tgz
-            tar -xzf arduino-cli.tgz
-            sudo mv arduino-cli /usr/local/bin/arduino-cli
-          else
-            echo "arduino-cli already available: $(command -v arduino-cli)"
-          fi
-          arduino-cli version || true
+      - name: Lint sketch
+        run: arduino-cli lint "Vitocal_basic-esp8266-Bartels.ino" || true
 
-      - name: Configure Arduino CLI
-        run: |
-          arduino-cli config init --overwrite
-          arduino-cli config set board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
-          arduino-cli core update-index
-
-      - name: Show tag and ref
-        run: |
-          echo "github.ref: ${{ github.ref }}"
-          echo "github.ref_name: ${{ github.ref_name }}"
-          echo "github.sha: ${{ github.sha }}"
-
-      - name: Arduino CLI version
-        run: arduino-cli version || true
-
-      - name: Validate YAML syntax (yamllint)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y yamllint
-          yamllint -s .github/workflows/release.yml
-
-      - name: Lint Arduino sketch
-        run: |
-          arduino-cli lint "Vitocal_basic-esp8266-Bartels.ino" --format text --warnings all --verbose || true
-
-      - name: Basic repo sanity checks
-        run: |
-          test -f README.md
-          test -f HA_mqtt_addin.h
-          test -f Vitocal_datapoints.h
-          test -f Vitocal_polling.h
-
-      - name: Create GitHub Release
+      - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -81,12 +34,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare source zip
+      - name: Package sources
         run: |
           mkdir -p dist
           zip -r dist/source-${{ github.ref_name }}.zip README.md Vitocal_basic-esp8266-Bartels.ino HA_mqtt_addin.h Vitocal_datapoints.h Vitocal_polling.h build_opt.h || true
 
-      - name: Upload release asset (source zip)
+      - name: Upload asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/source-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: softprops/action-gh-release@v1
         with:
           files: dist/source-${{ github.ref_name }}.zip

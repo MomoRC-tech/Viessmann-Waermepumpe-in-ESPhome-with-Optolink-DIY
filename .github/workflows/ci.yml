@@ -10,32 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Arduino CLI (pinned)
+      - name: Setup Arduino CLI (latest)
         uses: arduino/setup-arduino-cli@v1
-        continue-on-error: true
         with:
-          version: 0.35.3
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
 
-      - name: Configure Arduino CLI
+      - name: Configure core
         run: |
           arduino-cli config init --overwrite
           arduino-cli config set board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
           arduino-cli core update-index
           arduino-cli core install esp8266:esp8266
 
-      - name: Cache Arduino dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Arduino
-            ~/.arduinoIDE
-          key: arduino-${{ runner.os }}-${{ hashFiles('**/Vitocal_basic-esp8266-Bartels.ino') }}
-
-      - name: Install required libraries
+      - name: Install libraries
         run: |
           arduino-cli lib install "ArduinoHA"
           arduino-cli lib install "FastLED"
@@ -45,7 +35,7 @@ jobs:
           arduino-cli lib install "WebSerial"
           arduino-cli lib install --git-url https://github.com/openv/vitowifi.git
 
-      - name: Compile firmware (ESP8266 D1 mini)
+      - name: Compile (ESP8266 D1 mini)
         run: |
           arduino-cli compile \
             --fqbn esp8266:esp8266:d1_mini \
