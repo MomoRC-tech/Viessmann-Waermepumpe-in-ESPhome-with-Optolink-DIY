@@ -56,6 +56,7 @@ Notes:
 ### Security
 - Avoid hardcoding credentials in source. This repo uses a `secrets.h` (git-ignored) that defines `WIFI_SSID`, `WIFI_PASSWORD`, `MQTT_USER`, and `MQTT_PASS`. Update `secrets.h` locally with your values.
 - Alternatively, consider WiFiManager or runtime configuration for production.
+ - A `secrets.example.h` is provided. Copy it to `secrets.h` and set your credentials. The real `secrets.h` is ignored by git.
 
 ### Key Files
 - `Vitocal_basic-esp8266-Bartels.ino`: Main sketch, async web server setup, VitoWiFi init, OTA/WebSerial, and polling loop.
