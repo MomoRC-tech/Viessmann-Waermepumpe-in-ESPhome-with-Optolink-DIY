@@ -19,6 +19,7 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
   // #include <ESP8266Ping.h>
   #include <ESPAsyncTCP.h>
   #include <SoftwareSerial.h>
+#endif
 // #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
