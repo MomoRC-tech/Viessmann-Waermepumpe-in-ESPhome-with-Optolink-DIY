@@ -59,24 +59,24 @@
 
 // Reset reason includes (ESP-IDF target specific)
 #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-#if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-#include "esp32/rom/rtc.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/rtc.h"
-#elif CONFIG_IDF_TARGET_ESP32C3
-#include "esp32c3/rom/rtc.h"
-#else
-#error Target CONFIG_IDF_TARGET is not supported
-#endif
+  #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+    #include "esp32/rom/rtc.h"
+  #elif CONFIG_IDF_TARGET_ESP32S2
+    #include "esp32s2/rom/rtc.h"
+  #elif CONFIG_IDF_TARGET_ESP32C3
+    #include "esp32c3/rom/rtc.h"
+  #else
+    #error Target CONFIG_IDF_TARGET is not supported
+  #endif
 #else // ESP32 Before IDF 4.0
 // #include "rom/rtc.h"
 #endif
  
 // Web server configuration and WiFi credentials
 #if __has_include("secrets.h")
-#include "secrets.h"  // project-local, git-ignored real credentials
+  #include "secrets.h"  // project-local, git-ignored real credentials
 #else
-#include "secrets.example.h" // fallback example values so CI/builds still compile
+  #include "secrets.example.h" // fallback example values so CI/builds still compile
 #endif
 const char*     PARAM_INPUT_1 = "output";
 const char*     PARAM_INPUT_2 = "state";
