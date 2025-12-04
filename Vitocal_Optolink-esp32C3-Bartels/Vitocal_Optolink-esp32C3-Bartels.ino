@@ -1,14 +1,3 @@
-//###############################
-/*
-This example defines three datapoints.
-The first two are DPTemp type datapoints and have their own callback.
-When no specific callback is attached to a datapoint, it uses the global callback.
-
-Note the difference in return value between the callbacks:
-for tempCallback uses value.getFloat() as DPTemp datapoints return a float.
-globalCallback uses value.getString(char*,size_t). This method is independent of the returned type.
-*/
-//###############################
 #ifdef ESP32
   #include <WiFi.h>
   #include <AsyncTCP.h>
@@ -18,7 +7,6 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
   // #include <ESP8266Ping.h>
   #include <ESPAsyncTCP.h>
 #endif
-// #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
 #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
