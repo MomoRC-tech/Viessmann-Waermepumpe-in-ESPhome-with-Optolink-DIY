@@ -99,7 +99,7 @@ Notes:
 
 - Requirements:
 	- Arduino IDE or Arduino CLI
-	- Libraries: `bertmelis/VitoWiFi` (v3), `arduino-libraries/ArduinoHA`, `me-no-dev/ESP Async WebServer`, `me-no-dev/AsyncTCP` (ESP32), `me-no-dev/ESPAsyncTCP` (ESP8266), `ayushsharma82/ElegantOTA`, `me-no-dev/WebSerial` (or equivalent)
+	- Libraries: `bertmelis/VitoWiFi` (v3), `arduino-libraries/ArduinoHA`, `me-no-dev/ESP Async WebServer`, `me-no-dev/AsyncTCP` (ESP32), `me-no-dev/ESPAsyncTCP` (ESP8266), `ayushsharma82/ElegantOTA`, `me-no-dev/WebSerial`
 	- Board cores: ESP8266 by `ESP8266 Community`, ESP32 by `Espressif`
 
 - Configure secrets:
