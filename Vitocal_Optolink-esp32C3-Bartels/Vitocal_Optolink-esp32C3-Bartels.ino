@@ -23,7 +23,7 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
 #include <ESPAsyncWebServer.h>
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
 #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
-#endifr
+#endif
 #if ELEGANTOTA_USE_ASYNC_WEBSERVER
 #pragma message("ElegantOTA async mode enabled")
 #else
