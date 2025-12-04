@@ -36,7 +36,6 @@
 #include <ElegantOTA.h>
 #include <VitoWiFi.h>
 #include <ArduinoHA.h>
-#include <FastLED.h>
 #include <WebSerial.h>
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
@@ -97,9 +96,9 @@ AsyncEventSource  events("/events");
 
 #define DEVICE_NAME             "Waermepumpe_Bartels"
 #if __has_include("version_autogen.h")
-#include "version_autogen.h"
+  #include "version_autogen.h"
 #else
-#define DEVICE_SWVERSION        "0.2.5"
+  #define DEVICE_SWVERSION        "0.2.5"
 #endif
 #define DEVICE_MANUFACTURER     "Viessmann"
 #define DEVICE_MODEL            "Vitotronic200-WO1c-Bartels"
