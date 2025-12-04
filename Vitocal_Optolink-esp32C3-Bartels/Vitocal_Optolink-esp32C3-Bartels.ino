@@ -46,7 +46,11 @@ static constexpr uint8_t OPTOLINK_TX_PIN = D2;  // GPIO4
 SoftwareSerial optolinkSerial(OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 #elif defined(ESP32)
-HardwareSerial& optolinkSerial = Serial1;
+#if CONFIG_IDF_TARGET_ESP32C3
+HardwareSerial& optolinkSerial = Serial0; // ESP32-C3: use UART0 (GPIO20 RX, GPIO21 TX)
+#else
+HardwareSerial& optolinkSerial = Serial1; // Other ESP32 targets: keep UART1 default
+#endif
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 #else
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
@@ -257,8 +261,11 @@ void loop() {
 
   // Minimum gap between individual VitoWiFi read() calls.
   // Balances Optolink stability (avoid flooding) vs. responsiveness.
-  static const uint32_t DEFAULT_MIN_REQUEST_GAP_MS = 500; // ms
-  const uint32_t minRequestGapMs = DEFAULT_MIN_REQUEST_GAP_MS;
+  // Configurable defer between individual reads/writes for stability (alpha-compatible)
+  #ifndef VITO_MIN_REQUEST_GAP_MS
+  #define VITO_MIN_REQUEST_GAP_MS 1000UL
+  #endif
+  const uint32_t minRequestGapMs = VITO_MIN_REQUEST_GAP_MS;
 
   pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   minRequestGapMs);
   pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, minRequestGapMs);
@@ -298,7 +305,12 @@ void setupVitoWifi () {
     optolinkSerial.begin(4800, SWSERIAL_8E1, OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
     optolinkSerial.enableRxGPIOPullUp(true);
   #elif defined(ESP32)
-    optolinkSerial.begin(4800, SERIAL_8E1, 16, 17);
+    #if CONFIG_IDF_TARGET_ESP32C3
+      // ESP32-C3: leave pins at defaults for UART0 (GPIO20 RX, GPIO21 TX)
+      optolinkSerial.begin(4800, SERIAL_8E1);
+    #else
+      optolinkSerial.begin(4800, SERIAL_8E1, 16, 17);
+    #endif
   #else
     Serial.begin(4800, SERIAL_8E1);
   #endif
