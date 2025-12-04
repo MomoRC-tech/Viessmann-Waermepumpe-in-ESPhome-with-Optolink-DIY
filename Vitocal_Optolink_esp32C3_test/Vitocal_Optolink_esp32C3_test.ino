@@ -78,8 +78,8 @@ void onResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& 
   }
 
   // DAISY CHAIN: Successfully received data, now request the next one
-  // Schedule next read with a minimal 200ms gap
-  nextReadDueMillis = millis() + 200;
+  // Schedule next read with a minimal 1000ms gap
+  nextReadDueMillis = millis() + 1000;
 }
 
 void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
@@ -95,8 +95,8 @@ void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request)
   }
 
   // DAISY CHAIN: Even if error, move to next to prevent getting stuck
-  // Schedule next attempt after 200ms to avoid immediate requeue busy
-  nextReadDueMillis = millis() + 200;
+  // Schedule next attempt after 1000ms to avoid immediate requeue busy
+  nextReadDueMillis = millis() + 1000;
 }
 
 // ----------------------------------------------------------------------------
@@ -118,9 +118,9 @@ void readNextDatapoint() {
     // Successfully queued; advance index for subsequent step
     currentDatapointIndex++;
   } else {
-    // Busy: schedule a retry after >=200ms, keep sequence active
+    // Busy: schedule a retry after >=1000ms, keep sequence active
     CONSOLE_SERIAL.printf("Failed to queue request for %s\n", datapoints[currentDatapointIndex].name());
-    nextReadDueMillis = millis() + 200;
+    nextReadDueMillis = millis() + 1000;
   }
 }
 
@@ -131,8 +131,8 @@ void startReadingSequence() {
   isReadingSequence = true;
   currentDatapointIndex = 0; // Reset to start
   
-  // Trigger the first read via scheduler to ensure 200ms defer
-  nextReadDueMillis = millis() + 200;
+  // Trigger the first read via scheduler to ensure 1000ms defer
+  nextReadDueMillis = millis() + 1000;
 }
 
 // ----------------------------------------------------------------------------
@@ -197,7 +197,7 @@ void loop() {
   if (isReadingSequence && nextReadDueMillis != 0 && (long)(millis() - nextReadDueMillis) >= 0) {
     // Attempt next queued read step
     readNextDatapoint();
-    // Enforce at least 200ms before next attempt
-    nextReadDueMillis = millis() + 200;
+    // Enforce at least 1000ms before next attempt
+    nextReadDueMillis = millis() + 1000;
   }
 }
