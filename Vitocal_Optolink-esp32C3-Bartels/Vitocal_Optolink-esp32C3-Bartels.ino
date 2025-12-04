@@ -1,12 +1,13 @@
-#// ---------------------------------------------------------------------------
-#// Bartels ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
-#//
-#// - ESP32-C3: uses Hardware UART0 (GPIO20 RX, GPIO21 TX) for Optolink
-#// - ESP8266: uses Hardware UART0 (GPIO3 RX0, GPIO1 TX0) for Optolink
-#// - VitoWiFi handles serial initialization internally on vito.begin()
-#// - ElegantOTA provides web-based firmware updates (Async server)
-#// - Polling is grouped and paced via a configurable minimum request gap
-#// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Bartels ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
+//
+// - ESP32-C3: uses Hardware UART0 (GPIO20 RX, GPIO21 TX) for Optolink
+// - ESP8266: uses Hardware UART0 (GPIO3 RX0, GPIO1 TX0) for Optolink
+// - VitoWiFi handles serial initialization internally on vito.begin()
+// - ElegantOTA provides web-based firmware updates (Async server)
+// - Polling is grouped and paced via a configurable minimum request gap
+// ---------------------------------------------------------------------------
+// Platform-specific includes
 #ifdef ESP32
   #include <WiFi.h>
   #include <AsyncTCP.h>
@@ -16,40 +17,47 @@
   // #include <ESP8266Ping.h>
   #include <ESPAsyncTCP.h>
 #endif
+
+// General includes
 #include <ESPAsyncWebServer.h>
+
+// ElegantOTA configuration: use AsyncWebServer backend
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
-#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
+  #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
 #endif
 #if ELEGANTOTA_USE_ASYNC_WEBSERVER
-#pragma message("ElegantOTA async mode enabled")
+  #pragma message("ElegantOTA async mode enabled")
 #else
-#pragma message("ElegantOTA async mode DISABLED")
+  #pragma message("ElegantOTA async mode DISABLED")
 #endif
+
+
+// Core libraries and project headers
 #include <ElegantOTA.h>
-// VitoWiFi v3
 #include <VitoWiFi.h>
-#include "Vitocal_datapoints.h"
-#include "Vitocal_polling.h"
+#include <ArduinoHA.h>
 #include <FastLED.h>
 #include <WebSerial.h>
+#include "Vitocal_datapoints.h"
+#include "Vitocal_polling.h"
 
 #if defined(ESP8266)
-// Use hardware UART0 for Optolink on ESP8266 (GPIO1 TX0, GPIO3 RX0)
-// Note: Avoid using Serial for debug prints to prevent bus contention.
-HardwareSerial& optolinkSerial = Serial;
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
+  // Use hardware UART0 for Optolink on ESP8266 (GPIO1 TX0, GPIO3 RX0)
+  // Note: Avoid using Serial for debug prints to prevent bus contention.
+  HardwareSerial& optolinkSerial = Serial;
+  VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 #elif defined(ESP32)
-#if CONFIG_IDF_TARGET_ESP32C3
-HardwareSerial& optolinkSerial = Serial0; // ESP32-C3: use UART0 (GPIO20 RX, GPIO21 TX)
+  #if CONFIG_IDF_TARGET_ESP32C3
+    HardwareSerial& optolinkSerial = Serial0; // ESP32-C3: use UART0 (GPIO20 RX, GPIO21 TX)
+  #else
+    HardwareSerial& optolinkSerial = Serial1; // Other ESP32 targets: keep UART1 default
+  #endif
+  VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 #else
-HardwareSerial& optolinkSerial = Serial1; // Other ESP32 targets: keep UART1 default
-#endif
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
-#else
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
+  VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
 #endif
 
-//** reset reasons************************************************
+// Reset reason includes (ESP-IDF target specific)
 #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
 #include "esp32/rom/rtc.h"
@@ -64,7 +72,7 @@ VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
 // #include "rom/rtc.h"
 #endif
  
-//** webserver************************************************
+// Web server configuration and WiFi credentials
 #if __has_include("secrets.h")
 #include "secrets.h"  // project-local, git-ignored real credentials
 #else
@@ -80,8 +88,7 @@ IPAddress       secondaryDNS(192, 168, 0, 1);   //optional
 AsyncWebServer    server(80);
 AsyncEventSource  events("/events");
 
-// home assistant-------------------------------------------------------------
-#include <ArduinoHA.h>
+// Home Assistant integration
 
 #define BROKER_ADDR             "homeassistant.local"    
 #define BROKER_USERNAME         MQTT_USER
