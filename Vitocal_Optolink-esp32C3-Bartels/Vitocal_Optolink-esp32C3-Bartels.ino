@@ -1,3 +1,12 @@
+#// ---------------------------------------------------------------------------
+#// Bartels ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
+#//
+#// - ESP32-C3: uses Hardware UART0 (GPIO20 RX, GPIO21 TX) for Optolink
+#// - ESP8266: uses Hardware UART0 (GPIO3 RX0, GPIO1 TX0) for Optolink
+#// - VitoWiFi handles serial initialization internally on vito.begin()
+#// - ElegantOTA provides web-based firmware updates (Async server)
+#// - Polling is grouped and paced via a configurable minimum request gap
+#// ---------------------------------------------------------------------------
 #ifdef ESP32
   #include <WiFi.h>
   #include <AsyncTCP.h>
@@ -21,12 +30,12 @@
 #include <VitoWiFi.h>
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
-// #include "Vitocal_common.h"
 #include <FastLED.h>
 #include <WebSerial.h>
 
 #if defined(ESP8266)
 // Use hardware UART0 for Optolink on ESP8266 (GPIO1 TX0, GPIO3 RX0)
+// Note: Avoid using Serial for debug prints to prevent bus contention.
 HardwareSerial& optolinkSerial = Serial;
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 #elif defined(ESP32)
@@ -40,7 +49,7 @@ VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
 #endif
 
-// reset reasons
+//** reset reasons************************************************
 #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
 #include "esp32/rom/rtc.h"
@@ -188,7 +197,10 @@ VitoWiFi::Datapoint* vitoSlow[] = {
 };
 const int vitoSlowSize = sizeof(vitoSlow) / sizeof(vitoSlow[0]);
 
-// helper to run one polling step for a group
+// Run one paced polling step for a group.
+// Each group is polled in rounds; within a round, datapoints are
+// queued sequentially with at least minRequestGapMs between requests.
+// A new round only starts after the group's intervalMs has elapsed.
 void pollVitoGroup(VitoPollGroupState &state,
                    VitoWiFi::Datapoint **group,
                    int groupSize,
@@ -226,6 +238,8 @@ void pollVitoGroup(VitoPollGroupState &state,
 // helper to run one polling step for a group
 //## setup#####################################################################
 void setup() {
+  // Order matters: initialize Optolink/VitoWiFi, then WiFi and web server,
+  // then Home Assistant entities and diagnostics.
   setupVitoWifi();  
   mySetupWIFI();
   myConnect2WIFI();
@@ -387,6 +401,7 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 }
 
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
+  // Record error diagnostics and apply simple recovery/backoff if needed.
   WebSerial.print("VitoWiFi error for ");
   WebSerial.print(request.name());
   WebSerial.print(": ");
@@ -422,7 +437,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
 
 //** other voids ************************************************
 void myStartAsyncServer() {
-  // Handle Web Server
+  // Basic web server and OTA endpoints
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "text/plain", "Hi! I am Momo VitocalWIFI_MQTT.");
   });
