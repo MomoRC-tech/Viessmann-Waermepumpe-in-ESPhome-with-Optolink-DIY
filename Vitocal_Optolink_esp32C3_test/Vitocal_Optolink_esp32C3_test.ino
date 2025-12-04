@@ -1,4 +1,11 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
+#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
+#endif
+#include <ElegantOTA.h>
 #include <VitoWiFi.h>
 
 // ----------------------------------------------------------------------------
@@ -16,6 +23,16 @@
 #define OPTOLINK_SERIAL Serial0
 #define CONSOLE_SERIAL  Serial
 #define SERIALBAUDRATE  115200
+
+// WiFi credentials: prefer local secrets.h, else fallback example
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#include "secrets.example.h"
+#endif
+
+// Async web server for ElegantOTA
+AsyncWebServer server(80);
 
 // Initialize VitoWiFi with the hardware serial port
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vitoWiFi(&OPTOLINK_SERIAL);
@@ -127,6 +144,22 @@ void setup() {
   delay(2000); // Wait for USB CDC to enumerate
   CONSOLE_SERIAL.println("Booting ESP32-C3 VitoWiFi...");
 
+  // Connect WiFi
+  CONSOLE_SERIAL.printf("Connecting to WiFi SSID: %s\n", WIFI_SSID);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  uint32_t t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000UL) {
+    delay(250);
+    CONSOLE_SERIAL.print('.');
+  }
+  CONSOLE_SERIAL.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    CONSOLE_SERIAL.printf("WiFi connected. IP: %s\n", WiFi.localIP().toString().c_str());
+  } else {
+    CONSOLE_SERIAL.println("WiFi not connected (continuing offline)");
+  }
+
   // Setup callbacks
   vitoWiFi.onResponse(onResponse);
   vitoWiFi.onError(onError);
@@ -134,6 +167,14 @@ void setup() {
   // Initialize Optolink
   // NOTE: On ESP32-C3 Super Mini, this forces GPIO 20 (RX) and 21 (TX)
   vitoWiFi.begin(); 
+
+  // Minimal web server and ElegantOTA
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+    request->send(200, "text/plain", "ESP32-C3 VitoWiFi test. OTA at /update");
+  });
+  ElegantOTA.begin(&server);
+  server.begin();
+  CONSOLE_SERIAL.println("Web server started; ElegantOTA ready");
 
   CONSOLE_SERIAL.println("Setup finished. Waiting for timer...");
 }
@@ -149,4 +190,5 @@ void loop() {
 
   // Essential: Keep the library state machine running
   vitoWiFi.loop();
+  ElegantOTA.loop();
 }
