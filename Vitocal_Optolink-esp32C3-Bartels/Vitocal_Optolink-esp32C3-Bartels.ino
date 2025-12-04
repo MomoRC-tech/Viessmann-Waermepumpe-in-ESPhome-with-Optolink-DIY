@@ -18,13 +18,12 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
   // only if you really use ping – right now the ping function is commented out:
   // #include <ESP8266Ping.h>
   #include <ESPAsyncTCP.h>
-  #include <SoftwareSerial.h>
 #endif
 // #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
 #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
-#endif
+#endifr
 #if ELEGANTOTA_USE_ASYNC_WEBSERVER
 #pragma message("ElegantOTA async mode enabled")
 #else
@@ -40,9 +39,8 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
 #include <WebSerial.h>
 
 #if defined(ESP8266)
-static constexpr uint8_t OPTOLINK_RX_PIN = D1;  // GPIO5
-static constexpr uint8_t OPTOLINK_TX_PIN = D2;  // GPIO4
-SoftwareSerial optolinkSerial(OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
+// Use hardware UART0 for Optolink on ESP8266 (GPIO1 TX0, GPIO3 RX0)
+HardwareSerial& optolinkSerial = Serial;
 VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
 #elif defined(ESP32)
 #if CONFIG_IDF_TARGET_ESP32C3
@@ -301,8 +299,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
 void setupVitoWifi () {
   // initialise optolink serial and VitoWiFi v3
   #if defined(ESP8266)
-    optolinkSerial.begin(4800, SWSERIAL_8E1, OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
-    optolinkSerial.enableRxGPIOPullUp(true);
+    // ESP8266: VitoWiFi handles hardware Serial initialization (UART0) internally.
   #elif defined(ESP32)
     // ESP32: VitoWiFi handles serial initialization internally; no explicit begin here.
 
