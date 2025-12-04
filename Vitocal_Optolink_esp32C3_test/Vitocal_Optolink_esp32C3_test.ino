@@ -50,6 +50,8 @@ VitoWiFi::Datapoint datapoints[] = {
 const uint8_t NUM_DATAPOINTS = sizeof(datapoints) / sizeof(VitoWiFi::Datapoint);
 uint8_t currentDatapointIndex = 0;
 bool isReadingSequence = false;
+// Defer scheduling for next read to avoid hammering the queue
+static uint32_t nextReadDueMillis = 0;
 
 // Forward declarations
 void readNextDatapoint();
@@ -76,7 +78,8 @@ void onResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& 
   }
 
   // DAISY CHAIN: Successfully received data, now request the next one
-  readNextDatapoint();
+  // Schedule next read with a minimal 200ms gap
+  nextReadDueMillis = millis() + 200;
 }
 
 void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
@@ -92,7 +95,8 @@ void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request)
   }
 
   // DAISY CHAIN: Even if error, move to next to prevent getting stuck
-  readNextDatapoint();
+  // Schedule next attempt after 200ms to avoid immediate requeue busy
+  nextReadDueMillis = millis() + 200;
 }
 
 // ----------------------------------------------------------------------------
@@ -100,22 +104,23 @@ void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request)
 // ----------------------------------------------------------------------------
 
 void readNextDatapoint() {
-  // Increment index
-  currentDatapointIndex++;
-
-  // Check if we are done with the list
+  // If we just completed a read, advance to next item
+  // Otherwise, we attempt the current index again when busy
+  // Check completion (index points to next to read)
   if (currentDatapointIndex >= NUM_DATAPOINTS) {
     isReadingSequence = false;
     CONSOLE_SERIAL.println("--- Sequence Complete ---\n");
     return;
   }
 
-  // Send read request for the next item
-  // Note: VitoWiFi.read is non-blocking, it puts the request in the queue
-  if (!vitoWiFi.read(datapoints[currentDatapointIndex])) {
+  // Try to queue current datapoint; only increment index on success
+  if (vitoWiFi.read(datapoints[currentDatapointIndex])) {
+    // Successfully queued; advance index for subsequent step
+    currentDatapointIndex++;
+  } else {
+    // Busy: schedule a retry after >=200ms, keep sequence active
     CONSOLE_SERIAL.printf("Failed to queue request for %s\n", datapoints[currentDatapointIndex].name());
-    // If queue fails, try moving to next immediately or abort
-    isReadingSequence = false; 
+    nextReadDueMillis = millis() + 200;
   }
 }
 
@@ -126,12 +131,8 @@ void startReadingSequence() {
   isReadingSequence = true;
   currentDatapointIndex = 0; // Reset to start
   
-  // Trigger the first read manually
-  // The rest will be triggered by onResponse/onError
-  if (!vitoWiFi.read(datapoints[0])) {
-    CONSOLE_SERIAL.println("Failed to start sequence (Queue full?)");
-    isReadingSequence = false;
-  }
+  // Trigger the first read via scheduler to ensure 200ms defer
+  nextReadDueMillis = millis() + 200;
 }
 
 // ----------------------------------------------------------------------------
@@ -191,4 +192,12 @@ void loop() {
   // Essential: Keep the library state machine running
   vitoWiFi.loop();
   ElegantOTA.loop();
+
+  // Handle deferred next read when due
+  if (isReadingSequence && nextReadDueMillis != 0 && (long)(millis() - nextReadDueMillis) >= 0) {
+    // Attempt next queued read step
+    readNextDatapoint();
+    // Enforce at least 200ms before next attempt
+    nextReadDueMillis = millis() + 200;
+  }
 }
