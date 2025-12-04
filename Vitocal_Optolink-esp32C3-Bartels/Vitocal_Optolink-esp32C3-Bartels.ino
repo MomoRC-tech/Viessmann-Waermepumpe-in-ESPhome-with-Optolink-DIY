@@ -300,12 +300,7 @@ void setupVitoWifi () {
     optolinkSerial.begin(4800, SWSERIAL_8E1, OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
     optolinkSerial.enableRxGPIOPullUp(true);
   #elif defined(ESP32)
-    #if CONFIG_IDF_TARGET_ESP32C3
-      // ESP32-C3: leave pins at defaults for UART0 (GPIO20 RX, GPIO21 TX)
-      optolinkSerial.begin(4800, SERIAL_8E1);
-    #else
-      optolinkSerial.begin(4800, SERIAL_8E1, 16, 17);
-    #endif
+    // ESP32: VitoWiFi handles serial initialization internally; no explicit begin here.
   #else
     Serial.begin(4800, SERIAL_8E1);
   #endif
