@@ -25,7 +25,11 @@
 #define SERIALBAUDRATE  115200
 
 // WiFi credentials: prefer local secrets.h, else fallback example
+#if __has_include("secrets.h")
 #include "secrets.h"
+#else
+#include "secrets.example.h"
+#endif
 
 // Async web server for ElegantOTA
 AsyncWebServer server(80);
