@@ -14,8 +14,11 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
   #include <ESP32Ping.h>
   #include <AsyncTCP.h>
 #elif defined(ESP8266)
-    // VitoWiFi v3 handles serial configuration internally on begin();
-    // Avoid explicit optolinkSerial.begin to mirror alpha behavior and prevent conflicts.
+  #include <ESP8266WiFi.h>
+  // only if you really use ping – right now the ping function is commented out:
+  // #include <ESP8266Ping.h>
+  #include <ESPAsyncTCP.h>
+  #include <SoftwareSerial.h>
 // #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
@@ -301,8 +304,7 @@ void setupVitoWifi () {
     optolinkSerial.enableRxGPIOPullUp(true);
   #elif defined(ESP32)
     // ESP32: VitoWiFi handles serial initialization internally; no explicit begin here.
-  #else
-    Serial.begin(4800, SERIAL_8E1);
+
   #endif
 
   vito.onResponse(onVitoResponse);
