@@ -11,7 +11,6 @@ globalCallback uses value.getString(char*,size_t). This method is independent of
 //###############################
 #ifdef ESP32
   #include <WiFi.h>
-  #include <ESP32Ping.h>
   #include <AsyncTCP.h>
 #elif defined(ESP8266)
   #include <ESP8266WiFi.h>
