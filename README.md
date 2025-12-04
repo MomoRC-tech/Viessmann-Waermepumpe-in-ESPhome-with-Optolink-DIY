@@ -94,3 +94,30 @@ Notes:
 	- https://github.com/openv/openv/wiki/Bauanleitung-ESP8266
 	- https://github.com/openv/openv/wiki/Bauanleitung-LAN-Ethernet
 - VitoWiFi project: https://github.com/bertmelis/VitoWiFi
+
+### Getting Started
+
+- Requirements:
+	- Arduino IDE or Arduino CLI
+	- Libraries: `bertmelis/VitoWiFi` (v3), `arduino-libraries/ArduinoHA`, `me-no-dev/ESP Async WebServer`, `me-no-dev/AsyncTCP` (ESP32), `me-no-dev/ESPAsyncTCP` (ESP8266), `ayushsharma82/ElegantOTA`, `me-no-dev/WebSerial` (or equivalent)
+	- Board cores: ESP8266 by `ESP8266 Community`, ESP32 by `Espressif`
+
+- Configure secrets:
+	- Copy `secrets.example.h` to `secrets.h` and set `WIFI_SSID`, `WIFI_PASSWORD`, `MQTT_USER`, `MQTT_PASS`.
+
+- Build flags:
+	- Define `ELEGANTOTA_USE_ASYNC_WEBSERVER` for async mode.
+	- Example (Arduino CLI): `--build-properties compiler.c.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1" compiler.cpp.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1"`
+
+- ESP8266 (stable):
+	- Open `Vitocal_basic-esp8266-Bartels.ino` and upload to a D1 mini.
+	- Wiring: Optolink to UART0 (`RX=GPIO3`, `TX=GPIO1`).
+
+- ESP32‑C3 (alpha):
+	- Open `Vitocal_Optolink-esp32C3-Bartels/Vitocal_Optolink-esp32C3-Bartels.ino` and upload to ESP32‑C3.
+	- Wiring: Optolink to UART0 (`RX=GPIO21`, `TX=GPIO20`).
+
+- First run:
+	- Connect device to WiFi using `secrets.h` values.
+	- Visit device IP: ElegantOTA and WebSerial are served on the default web port.
+	- Configure polling speeds in Home Assistant via provided entities.
