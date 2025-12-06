@@ -2,21 +2,13 @@
 // Bartels ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
 //
 // - ESP32-C3: uses Hardware UART0 (GPIO20 RX, GPIO21 TX) for Optolink
-// - ESP8266: uses Hardware UART0 (GPIO3 RX0, GPIO1 TX0) for Optolink
 // - VitoWiFi handles serial initialization internally on vito.begin()
 // - ElegantOTA provides web-based firmware updates (Async server)
 // - Polling is grouped and paced via a configurable minimum request gap
 // ---------------------------------------------------------------------------
-// Platform-specific includes
-#ifdef ESP32
-  #include <WiFi.h>
-  #include <AsyncTCP.h>
-#elif defined(ESP8266)
-  #include <ESP8266WiFi.h>
-  // only if you really use ping – right now the ping function is commented out:
-  // #include <ESP8266Ping.h>
-  #include <ESPAsyncTCP.h>
-#endif
+// Platform-specific includes for ESP32
+#include <WiFi.h>
+#include <AsyncTCP.h>
 
 // General includes
 #include <ESPAsyncWebServer.h>
@@ -40,36 +32,9 @@
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
 
-#if defined(ESP8266)
-  // Use hardware UART0 for Optolink on ESP8266 (GPIO1 TX0, GPIO3 RX0)
-  // Note: Avoid using Serial for debug prints to prevent bus contention.
-  HardwareSerial& optolinkSerial = Serial;
-  VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
-#elif defined(ESP32)
-  #if CONFIG_IDF_TARGET_ESP32C3
-    HardwareSerial& optolinkSerial = Serial0; // ESP32-C3: use UART0 (GPIO20 RX, GPIO21 TX)
-  #else
-    HardwareSerial& optolinkSerial = Serial1; // Other ESP32 targets: keep UART1 default
-  #endif
-  VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
-#else
-  VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
-#endif
-
-// Reset reason includes (ESP-IDF target specific)
-#ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-  #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-    #include "esp32/rom/rtc.h"
-  #elif CONFIG_IDF_TARGET_ESP32S2
-    #include "esp32s2/rom/rtc.h"
-  #elif CONFIG_IDF_TARGET_ESP32C3
-    #include "esp32c3/rom/rtc.h"
-  #else
-    #error Target CONFIG_IDF_TARGET is not supported
-  #endif
-#else // ESP32 Before IDF 4.0
-// #include "rom/rtc.h"
-#endif
+// ESP32-C3 specific
+HardwareSerial& optolinkSerial = Serial0; // ESP32-C3: use UART0 (GPIO20 RX, GPIO21 TX)
+VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
  
 // Web server configuration and WiFi credentials
 #if __has_include("secrets.h")
@@ -267,7 +232,7 @@ void loop() {
   // Balances Optolink stability (avoid flooding) vs. responsiveness.
   // Configurable defer between individual reads/writes for stability (alpha-compatible)
   #ifndef VITO_MIN_REQUEST_GAP_MS
-  #define VITO_MIN_REQUEST_GAP_MS 1000UL
+  #define VITO_MIN_REQUEST_GAP_MS 1500UL
   #endif
   const uint32_t minRequestGapMs = VITO_MIN_REQUEST_GAP_MS;
 
@@ -305,13 +270,6 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
 //************************************************************
 void setupVitoWifi () {
   // initialise optolink serial and VitoWiFi v3
-  #if defined(ESP8266)
-    // ESP8266: VitoWiFi handles hardware Serial initialization (UART0) internally.
-  #elif defined(ESP32)
-    // ESP32: VitoWiFi handles serial initialization internally; no explicit begin here.
-
-  #endif
-
   vito.onResponse(onVitoResponse);
   vito.onError(onVitoError);
   vito.begin();
@@ -445,7 +403,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
 void myStartAsyncServer() {
   // Basic web server and OTA endpoints
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "Hi! I am Momo VitocalWIFI_MQTT.");
+    request->send(200, "text/plain", "Hi! I am Momo VitocalWIFI_MQTT. WebSerial at /webserial. ElegantOTA at /update.");
   });
   // Send a GET request to <ESP_IP>/updatevalues?output=<inputMessage1>&state=<inputMessage2>
   server.on("/updateValues", HTTP_GET, [] (AsyncWebServerRequest *request) {
@@ -467,7 +425,7 @@ void myStartAsyncServer() {
   // Handle Web Server Events
   events.onConnect([](AsyncEventSourceClient *client){
     if(client->lastId()){
-      //if (dbgSer) Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
+       Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
     }
     // send event with message "hello!", id current millis
     // and set reconnect delay to 1 second
@@ -485,13 +443,7 @@ void mySetupWIFI() {
   if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
     WebSerial.println("STA Failed to configure");
   }
-
-#ifdef ESP32
   WiFi.setHostname("VitocalWIFIbartels");
-#elif defined(ESP8266)
-  WiFi.hostname("VitocalWIFIbartels");
-#endif
-
   WiFi.mode(WIFI_STA);
 }
 
