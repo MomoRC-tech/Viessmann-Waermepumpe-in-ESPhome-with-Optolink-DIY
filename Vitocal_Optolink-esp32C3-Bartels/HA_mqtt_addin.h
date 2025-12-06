@@ -93,7 +93,7 @@ void setupHomeAssistant() {
     WWzirkulationspumpeSens.setIcon("mdi:pump");             WWzirkulationspumpeSens.setName("WW Zirkulation");     
     ventilHeizenWWSens.setIcon("mdi:pipe-valve");             ventilHeizenWWSens.setName("Ventil Heizen-WW");   
     
-    ventilHeizenWWSens.setForceUpdate(true);
+    ventilHeizenWWSens.setForceUpdate(false);
 
     RelEHeizStufeSens.setIcon("mdi:radiator");                  RelEHeizStufeSens.setName("EHeizstufe");     
     RelVerdichterSens.setIcon("mdi:filter");                 RelVerdichterSens.setName("Verdichter");         
