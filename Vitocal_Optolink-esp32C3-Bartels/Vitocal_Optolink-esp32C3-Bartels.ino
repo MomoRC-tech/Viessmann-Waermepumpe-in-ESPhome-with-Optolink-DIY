@@ -1,102 +1,85 @@
-//###############################
-/*
-This example defines three datapoints.
-The first two are DPTemp type datapoints and have their own callback.
-When no specific callback is attached to a datapoint, it uses the global callback.
-
-Note the difference in return value between the callbacks:
-for tempCallback uses value.getFloat() as DPTemp datapoints return a float.
-globalCallback uses value.getString(char*,size_t). This method is independent of the returned type.
-*/
-//###############################
-#ifdef ESP32
-  #include <WiFi.h>
-  #include <ESP32Ping.h>
-  #include <AsyncTCP.h>
-#elif defined(ESP8266)
-  #include <ESP8266WiFi.h>
-  // only if you really use ping – right now the ping function is commented out:
-  // #include <ESP8266Ping.h> 
-  #include <ESPAsyncTCP.h>
-  #include <SoftwareSerial.h>
-#endif
-
-// #include <HTTPClient.h>
+// ---------------------------------------------------------------------------
+// Bartels ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
+//
+// - ESP32-C3: uses Hardware UART0 (GPIO20 RX, GPIO21 TX) for Optolink
+// - VitoWiFi handles serial initialization internally on vitowifi.begin()
+// - ElegantOTA provides web-based firmware updates (Async server)
+// - Polling is grouped and paced via a configurable minimum request gap
+// ---------------------------------------------------------------------------
+// General includes
+#include <Arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
+#include <AsyncTCP.h>
+#include "myEveryN.h"
+
+// Runtime measurement (loop duration in µs)
+#include <limits.h>  // for UINT32_MAX
+static uint32_t rtMinUs     = UINT32_MAX;
+static uint32_t rtMaxUs     = 0;
+static uint64_t rtSumUs     = 0;
+static uint32_t rtSamples   = 0;
+static uint32_t rtPrevUs    = 0;
+
+// ElegantOTA configuration: use AsyncWebServer backend
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
-#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
+  #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
 #endif
 #if ELEGANTOTA_USE_ASYNC_WEBSERVER
-#pragma message("ElegantOTA async mode enabled")
+  #pragma message("ElegantOTA async mode enabled")
 #else
-#pragma message("ElegantOTA async mode DISABLED")
+  #pragma message("ElegantOTA async mode DISABLED")
 #endif
+
+// Core libraries and project headers
 #include <ElegantOTA.h>
-// VitoWiFi v3
 #include <VitoWiFi.h>
+#include <ArduinoHA.h>
+#include <WebSerial.h>
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
-// #include "Vitocal_common.h"
-#include <FastLED.h>
-#include <WebSerial.h>
 
-#if defined(ESP8266)
-static constexpr uint8_t OPTOLINK_RX_PIN = D1;  // GPIO5
-static constexpr uint8_t OPTOLINK_TX_PIN = D2;  // GPIO4
-SoftwareSerial optolinkSerial(OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
-#elif defined(ESP32)
-HardwareSerial& optolinkSerial = Serial1;
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&optolinkSerial);
-#else
-VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito(&Serial);
-#endif
+// forward declarations
+void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request);
+void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request);
 
-// reset reasons
-#ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-#if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-#include "esp32/rom/rtc.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/rom/rtc.h"
-#elif CONFIG_IDF_TARGET_ESP32C3
-#include "esp32c3/rom/rtc.h"
-#else
-#error Target CONFIG_IDF_TARGET is not supported
-#endif
-#else // ESP32 Before IDF 4.0
-// #include "rom/rtc.h"
-#endif
+// serial config
+#define OPTOLINK_SERIAL Serial0
+#define CONSOLE_SERIAL  WebSerial   // configure "Serial" or "WebSerial"
+#define SERIALBAUDRATE  115200
+
+// Initialize VitoWiFi with the hardware serial port
+VitoWiFi::VitoWiFi<VitoWiFi::VS1> vitoWIFI(&OPTOLINK_SERIAL);
  
-//** webserver************************************************
+// Web server configuration and WiFi credentials
 #if __has_include("secrets.h")
-#include "secrets.h"  // project-local, git-ignored real credentials
+  #include "secrets.h"  // project-local, git-ignored real credentials
 #else
-#include "secrets.example.h" // fallback example values so CI/builds still compile
+  #include "secrets.example.h" // fallback example values so CI/builds still compile
 #endif
+
 const char*     PARAM_INPUT_1 = "output";
 const char*     PARAM_INPUT_2 = "state";
 IPAddress       local_IP(192, 168, 0, 65);
 IPAddress       gateway(192, 168, 0, 1);
-IPAddress       subnet(255, 255, 0, 0);
+IPAddress       subnet(255, 255, 255, 0);
 IPAddress       primaryDNS(192, 168, 0, 1);   //optional
 IPAddress       secondaryDNS(192, 168, 0, 1);   //optional
 AsyncWebServer    server(80);
 AsyncEventSource  events("/events");
 
-// home assistant-------------------------------------------------------------
-#include <ArduinoHA.h>
+// MultiWifi object
+WiFiMulti WiFiMulti;
 
+// Home Assistant integration
 #define BROKER_ADDR             "homeassistant.local"    
 #define BROKER_USERNAME         MQTT_USER
 #define BROKER_PASSWORD         MQTT_PASS
 #define BROKER_PORT             1883
 
 #define DEVICE_NAME             "Waermepumpe_Bartels"
-#if __has_include("version_autogen.h")
-#include "version_autogen.h"
-#else
-#define DEVICE_SWVERSION        "0.2.5"
-#endif
+#define DEVICE_SWVERSION        __DATE__ " " __TIME__ 
 #define DEVICE_MANUFACTURER     "Viessmann"
 #define DEVICE_MODEL            "Vitotronic200-WO1c-Bartels"
 
@@ -106,6 +89,7 @@ AsyncEventSource  events("/events");
 WiFiClient client;
 HADevice device("WPBartels");
 HAMqtt mqtt(client, device, 30);
+
 
 // HA sensors and voids
 #include "HA_mqtt_addin.h"
@@ -145,7 +129,7 @@ static const char* const operationModeLabels[] = {
 
 static const char* const manualModeLabels[] = {
   "normal",
-  "manuel",
+  "manuell",
   "WW auf Temp2"
 };
 
@@ -200,7 +184,10 @@ VitoWiFi::Datapoint* vitoSlow[] = {
 };
 const int vitoSlowSize = sizeof(vitoSlow) / sizeof(vitoSlow[0]);
 
-// helper to run one polling step for a group
+// Run one paced polling step for a group.
+// Each group is polled in rounds. within a round, datapoints are
+// queued sequentially with at least minRequestGapMs between requests.
+// A new round only starts after the group's intervalMs has elapsed.
 void pollVitoGroup(VitoPollGroupState &state,
                    VitoWiFi::Datapoint **group,
                    int groupSize,
@@ -220,45 +207,139 @@ void pollVitoGroup(VitoPollGroupState &state,
     return;
   }
 
-  // try to queue next datapoint read; VitoWiFi itself rate-limits via return value
+  // try to queue next datapoint read, VitoWiFi itself rate-limits via return value
   if (groupSize <= 0) {
     return;
   }
 
-  if (vito.read(*group[state.index])) {
+  if (vitoWIFI.read(*group[state.index])) {
     state.lastRequestMs = now;
     state.index++;
     if (state.index >= groupSize) {
       state.index = 0;
       state.lastRoundEndMs = now;
     }
+  } else {
+    // backoff: don't hammer read() when queue is full
+    state.lastRequestMs = now;
   }
 }
 
-// helper to run one polling step for a group
 //## setup#####################################################################
-void setup() {
-  setupVitoWifi();  
-  mySetupWIFI();
-  myConnect2WIFI();
-  myStartAsyncServer();
+void setup() {  
+  // Initialize USB Console
+  Serial.begin(SERIALBAUDRATE);
+  Serial.setDebugOutput(true); // IMPORTANT: ROUTE DEBUG NOT THROUGH THE OPTOLINK SERIAL!
+  delay(2000); // Wait for USB CDC to enumerate
+  Serial.println("Booting ESP32-C3 VitoWiFi..."); 
+
+  // add wifi AP  
+  WiFiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
+ 
+  Serial.println();
+  Serial.println();
+  Serial.print("Waiting for WiFi... ");
+
+ // 2. wait for connection
+  WiFi.mode(WIFI_STA);
+
+  // 🔒 Set static IP config BEFORE connecting
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
+  WiFi.setTxPower(WIFI_POWER_8_5dBm); //  workaround for esp32 c3 as of defect antenna design
+
+  while (WiFiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  CONSOLE_SERIAL.println("");
+  CONSOLE_SERIAL.println("WiFi connected");
+  CONSOLE_SERIAL.print("IP address: ");
+  CONSOLE_SERIAL.println(WiFi.localIP());
+
+  // initialise optolink serial and VitoWiFi v3
+  vitoWIFI.onResponse(onVitoResponse);
+  vitoWIFI.onError(onVitoError);
+  vitoWIFI.begin();
+
+  // Minimal web server
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+    request->send(200, "text/plain", "ESP32-C3 VitoWiFi test. OTA at /update. Webserial at /webserial");
+  });
+
+  // start ota, webserial, server
+  ElegantOTA.begin(&server);
+  WebSerial.begin(&server);
+  server.begin();
+  CONSOLE_SERIAL.println("Web server started; ElegantOTA ans WebSerial ready");
+
+
   //setup home assistant *******
   setupHomeAssistant();
   
-  WebSerial.println(F("Setup finished..."));
+  CONSOLE_SERIAL.println(F("Setup finished..."));
 }
+
+
+//**************************************************
+// --- runtime measurement: measure time between loop() iterations ---
+void myRuntimeMeasurement()  {
+  uint32_t nowUs = micros();
+  if (rtPrevUs != 0) {
+    uint32_t delta = nowUs - rtPrevUs;  // unsigned handles wrap-around
+
+    if (delta < rtMinUs) rtMinUs = delta;
+    if (delta > rtMaxUs) rtMaxUs = delta;
+    rtSumUs   += delta;
+    rtSamples++;
+  }
+  rtPrevUs = nowUs;
+}
+
+void myPrintRuntime() {
+ if (rtSamples > 0) {
+      float meanUs = (float)rtSumUs / (float)rtSamples;
+
+      CONSOLE_SERIAL.print(F("[RT] loop Δt (µs): min="));
+      CONSOLE_SERIAL.print(rtMinUs);
+      CONSOLE_SERIAL.print(F(" max="));
+      CONSOLE_SERIAL.print(rtMaxUs);
+      CONSOLE_SERIAL.print(F(" mean="));
+      CONSOLE_SERIAL.println(meanUs);
+
+      // reset stats window
+      rtMinUs   = UINT32_MAX;
+      rtMaxUs   = 0;
+      rtSumUs   = 0;
+      rtSamples = 0;
+    } else {
+      CONSOLE_SERIAL.println(F("[RT] no samples collected"));
+    }
+}
+
 
 //** loop************************************************
 void loop() { 
+  myRuntimeMeasurement();
   // cyclic VitoWiFi reads (v3 API, grouped for load balancing)
-  // each group is polled in rounds; within a round, datapoints are
+  // each group is polled in rounds -  within a round, datapoints are
   // read sequentially with at least minRequestGapMs between requests.
   // A new round for a group only starts after its intervalMs has passed.
 
   // Minimum gap between individual VitoWiFi read() calls.
   // Balances Optolink stability (avoid flooding) vs. responsiveness.
-  static const uint32_t DEFAULT_MIN_REQUEST_GAP_MS = 500; // ms
-  const uint32_t minRequestGapMs = DEFAULT_MIN_REQUEST_GAP_MS;
+  // Configurable defer between individual reads/writes for stability (alpha-compatible)
+  #ifndef VITO_MIN_REQUEST_GAP_MS
+  #define VITO_MIN_REQUEST_GAP_MS 1500UL
+  #endif
+  const uint32_t minRequestGapMs = VITO_MIN_REQUEST_GAP_MS;
 
   pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   minRequestGapMs);
   pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, minRequestGapMs);
@@ -270,43 +351,25 @@ void loop() {
     toggle = !toggle;
     count_tmp++;
     device.publishAvailability();
-    WebSerial.println("VitoWiFi read cycle running");
+    CONSOLE_SERIAL.println("VitoWiFi read cycle running");
   }
 
-  vito.loop();
+  // Essential: Keep the library state machine running
+  vitoWIFI.loop();
   mqtt.loop();
   ElegantOTA.loop();
+  WebSerial.loop();
   
-  EVERY_N_SECONDS (61) {
+  EVERY_N_SECONDS (300) {
      myCheckWIFIcyclic();
   }
-  EVERY_N_SECONDS (300) {
-	if (WiFi.status() != WL_CONNECTED) {
-	  ESP.restart();
-	}
+
+  EVERY_N_SECONDS(4) {
+    myPrintRuntime();
   }
+
 }
 
-// forward declaration of the handlers (VitoWiFi v3)
-void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request);
-void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request);
-
-//************************************************************
-void setupVitoWifi () {
-  // initialise optolink serial and VitoWiFi v3
-  #if defined(ESP8266)
-    optolinkSerial.begin(4800, SWSERIAL_8E1, OPTOLINK_RX_PIN, OPTOLINK_TX_PIN, false);
-    optolinkSerial.enableRxGPIOPullUp(true);
-  #elif defined(ESP32)
-    optolinkSerial.begin(4800, SERIAL_8E1, 16, 17);
-  #else
-    Serial.begin(4800, SERIAL_8E1);
-  #endif
-
-  vito.onResponse(onVitoResponse);
-  vito.onError(onVitoError);
-  vito.begin();
-}
 //** VitoWiFi response/error handlers (v3) ******************************
 
 void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request) {
@@ -315,11 +378,11 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
   if (&request == &dpTempOutside) {
     float temp = value;
     AussenTempSens.setValue(temp);
-    WebSerial.println("tmpAu");
+    CONSOLE_SERIAL.println("tmpAu");
   } else if (&request == &dpWWoben) {
     float temp = value;
     WWtempObenSens.setValue(temp);
-    WebSerial.println("WWo");
+    CONSOLE_SERIAL.println("WWo");
   } else if (&request == &dpVorlaufSoll) {
     float temp = value;
     VorlaufTempSetSens.setValue(temp);
@@ -338,7 +401,7 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
   } else if (&request == &dpRelEHeizStufe2) {
     uint8_t v2 = value;
     eHeiz2 = eHeiz1 + (2 * v2);
-    RelEHeizStufeSens.setValue(eHeiz2);
+    RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
     HVACwaermepumpe.setAuxState(eHeiz2 != 0);
   } else if (&request == &dpHeizkreispumpe) {
     uint8_t v = value;
@@ -398,10 +461,11 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 }
 
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
-  WebSerial.print("VitoWiFi error for ");
-  WebSerial.print(request.name());
-  WebSerial.print(": ");
-  WebSerial.println(static_cast<int>(error));
+  // Record error diagnostics and apply simple recovery/backoff if needed.
+  CONSOLE_SERIAL.print("VitoWiFi error for ");
+  CONSOLE_SERIAL.print(request.name());
+  CONSOLE_SERIAL.print(": ");
+  CONSOLE_SERIAL.println(static_cast<int>(error));
 
   // Track errors: consecutive and within a window
   uint32_t now = millis();
@@ -416,95 +480,24 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
   vitoErrorCountSens.setValue(vitoErrorCount);
   vitoConsecErrorSens.setValue(vitoConsecutiveErrors);
 
-  // Simple recovery: if too many consecutive errors, briefly pause polling and try to kick VitoWiFi
+  // Simple recovery -  if too many consecutive errors, briefly pause polling and try to kick VitoWiFi
   if (vitoConsecutiveErrors >= vitoErrorThreshold) {
-    WebSerial.println("Too many consecutive VitoWiFi errors; applying backoff and reinitializing VitoWiFi...");
+    CONSOLE_SERIAL.println("Too many consecutive VitoWiFi errors; applying backoff and reinitializing VitoWiFi...");
     // Backoff by delaying further reads for a short period via intervals increase
     vitoFastState.intervalMs   = 30000UL;
     vitoMediumState.intervalMs = 60000UL;
     vitoSlowState.intervalMs   = 90000UL;
     // Attempt a light reinit
-    vito.end();
+    vitoWIFI.end();
     delay(200);
-    vito.begin();
+    vitoWIFI.begin();
     vitoConsecutiveErrors = 0;
   }
 }
 
-//** other voids ************************************************
-void myStartAsyncServer() {
-  // Handle Web Server
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "Hi! I am Momo VitocalWIFI_MQTT.");
-  });
-  // Send a GET request to <ESP_IP>/updatevalues?output=<inputMessage1>&state=<inputMessage2>
-  server.on("/updateValues", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    String inputMessage1;
-    String inputMessage2;
-    // GET input1 value on <ESP_IP>/updatevalues?output=<inputMessage1>&state=<inputMessage2>
-    if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
-      inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-      inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
-    }
-    else {
-      inputMessage1 = "No message sent";
-      inputMessage2 = "No message sent";
-    }
-    request->send(200, "text/plain", "OK");
-    
-  });
 
-  // Handle Web Server Events
-  events.onConnect([](AsyncEventSourceClient *client){
-    if(client->lastId()){
-      //if (dbgSer) Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
-    }
-    // send event with message "hello!", id current millis
-    // and set reconnect delay to 1 second
-    client->send("hello!", NULL, millis(), 10000);
-  });
-  server.addHandler(&events);
-  ElegantOTA.begin(&server);
-  WebSerial.begin(&server);
-  server.begin();
-  WebSerial.println("HTTP server started");
-}
+//************************************************************
 
-void mySetupWIFI() {
-  WiFi.mode(WIFI_OFF);
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    WebSerial.println("STA Failed to configure");
-  }
-
-#ifdef ESP32
-  WiFi.setHostname("VitocalWIFIbartels");
-#elif defined(ESP8266)
-  WiFi.hostname("VitocalWIFIbartels");
-#endif
-
-  WiFi.mode(WIFI_STA);
-}
-
-void myConnect2WIFI () {
-  int _time;
-  // initially connect to WIFI with timeout
-  WebSerial.print("Connecting to ");
-  WebSerial.println(WIFI_SSID);
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  }
-  _time = millis();
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    if ((millis()-_time) > 10000) {         // restart if not connected after 10s
-      ESP.restart();
-      } else {
-      WebSerial.print(".");
-    }
-  }
-  WebSerial.println("");
-  WebSerial.println("WiFi connected.");
-}
 
 void myCheckWIFIcyclic () {
   if (WiFi.status() != WL_CONNECTED) {
@@ -515,8 +508,6 @@ void myCheckWIFIcyclic () {
     // WIFI is connected  
   }
   else {
-    WebSerial.println("not reconnected!");
+    Serial.println("not reconnected!");
   }
 }
-
-
