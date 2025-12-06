@@ -365,7 +365,7 @@ void loop() {
   }
 
   EVERY_N_SECONDS(4) {
-    myPrintRuntime();
+    //myPrintRuntime();
   }
 
 }

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #pragma once
 #include <Arduino.h>
 
@@ -51,7 +50,7 @@ private:
 
 // Run the following block every N seconds
 #define EVERY_N_SECONDS(N) EVERY_N_MILLISECONDS((N) * 1000UL)
-=======
+
 #pragma once
 #include <Arduino.h>
 
@@ -104,4 +103,4 @@ private:
 
 // Run the following block every N seconds
 #define EVERY_N_SECONDS(N) EVERY_N_MILLISECONDS((N) * 1000UL)
->>>>>>> ec99e67422b535a16cd78cfe73c8e8eea53071b2
+
