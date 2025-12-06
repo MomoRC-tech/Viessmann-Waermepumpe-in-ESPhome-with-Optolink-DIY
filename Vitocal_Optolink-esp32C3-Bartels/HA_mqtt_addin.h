@@ -236,7 +236,7 @@ extern VitoWiFi::Datapoint setManualMode;
 void setRaumSoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempRaumSoll, val);
+        vitoWIFI.write(setTempRaumSoll, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -244,7 +244,7 @@ void setRaumSoll (HANumeric number, HANumber* sender) {
 void setRaumSollRed (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempRaumSollRed, val);
+        vitoWIFI.write(setTempRaumSollRed, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -252,7 +252,7 @@ void setRaumSollRed (HANumeric number, HANumber* sender) {
 void setHystWWsoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempHystWWsoll, val);
+        vitoWIFI.write(setTempHystWWsoll, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -260,7 +260,7 @@ void setHystWWsoll (HANumeric number, HANumber* sender) {
 void setHKneigung (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempHKneigung, val);
+        vitoWIFI.write(setTempHKneigung, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -268,7 +268,7 @@ void setHKneigung (HANumeric number, HANumber* sender) {
 void setHKniveau (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempHKniveau, val);
+        vitoWIFI.write(setTempHKniveau, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -276,7 +276,7 @@ void setHKniveau (HANumeric number, HANumber* sender) {
 void setWWSoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempWWsoll, val);
+        vitoWIFI.write(setTempWWsoll, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -284,14 +284,14 @@ void setWWSoll (HANumeric number, HANumber* sender) {
 void setWWSoll2 (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFIwrite(setTempWWsoll2, val);
+        vitoWIFI.write(setTempWWsoll2, val);
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void onTargetTemperatureCommand(HANumeric temperature, HAHVAC* sender) {
     float val = temperature.toFloat();
-    vitoWIFIwrite(setTempRaumSoll, val);
+    vitoWIFI.write(setTempRaumSoll, val);
 
     sender->setTargetTemperature(temperature); // report target temperature back to the HA panel
 }
@@ -327,17 +327,17 @@ void onManualModeCommand(int8_t index, HASelect* sender)
     switch (index) {
     case 0:
         // Option "Normal" was selected
-        vitoWIFIwrite(setManualMode, static_cast<uint8_t>(index));
+        vitoWIFI.write(setManualMode, static_cast<uint8_t>(index));
         break;
 
     case 1:
         // Option "Manueller Heizbetrieb" was selected
-        vitoWIFIwrite(setManualMode, static_cast<uint8_t>(index));
+        vitoWIFI.write(setManualMode, static_cast<uint8_t>(index));
         break;
 
     case 2:
         // Option "1x WW auf Temp2" was selected
-        vitoWIFIwrite(setManualMode, static_cast<uint8_t>(index));
+        vitoWIFI.write(setManualMode, static_cast<uint8_t>(index));
         break;
 
     default:
