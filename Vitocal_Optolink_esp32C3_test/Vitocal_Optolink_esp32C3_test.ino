@@ -34,7 +34,7 @@ WiFiMulti WiFiMulti;
 // ----------------------------------------------------------------------------
 
 #define OPTOLINK_SERIAL Serial0
-#define CONSOLE_SERIAL  Serial   // configure "Serial" or "WebSerial"
+#define CONSOLE_SERIAL  WebSerial   // configure "Serial" or "WebSerial"
 #define SERIALBAUDRATE  115200
 
 // WiFi credentials: prefer local secrets.h, else fallback example
@@ -154,10 +154,10 @@ void startReadingSequence() {
 
 void setup() {
   // Initialize USB Console
-  CONSOLE_SERIAL.begin(SERIALBAUDRATE);
-  CONSOLE_SERIAL.setDebugOutput(true); // IMPORTANT: ROUTE DEBUG NOT THROUGH THE OPTOLINK SERIAL!
+  Serial.begin(SERIALBAUDRATE);
+  Serial.setDebugOutput(true); // IMPORTANT: ROUTE DEBUG NOT THROUGH THE OPTOLINK SERIAL!
   delay(2000); // Wait for USB CDC to enumerate
-  CONSOLE_SERIAL.println("Booting ESP32-C3 VitoWiFi...");
+  Serial.println("Booting ESP32-C3 VitoWiFi...");
 
   WiFiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
   
@@ -167,6 +167,10 @@ void setup() {
 
   // 2. wait for connection
   WiFi.mode(WIFI_STA);
+  // 🔒 Set static IP config BEFORE connecting
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
   WiFi.setTxPower(WIFI_POWER_8_5dBm); // 💡 workaround for esp32 c3 as of defect antenna design
 
   while (WiFiMulti.run() != WL_CONNECTED) {
@@ -178,6 +182,11 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  CONSOLE_SERIAL.println("");
+  CONSOLE_SERIAL.println("WiFi connected");
+  CONSOLE_SERIAL.print("IP address: ");
+  CONSOLE_SERIAL.println(WiFi.localIP());
 
   // Setup callbacks
   vitoWiFi.onResponse(onResponse);
