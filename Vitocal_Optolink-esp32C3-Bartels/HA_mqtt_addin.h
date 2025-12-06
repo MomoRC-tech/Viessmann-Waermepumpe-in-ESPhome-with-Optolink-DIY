@@ -66,8 +66,8 @@ HANumber mediumPollInterval("mediumPollInterval");
 HANumber slowPollInterval("slowPollInterval");
 
 // Diagnostics: error counters and threshold
-HASensor vitoErrorCountSens("vito_error_count");
-HASensor vitoConsecErrorSens("vito_consecutive_errors");
+HASensorNumber vitoErrorCountSens("vito_error_count", HANumber::PrecisionP0);
+HASensorNumber vitoConsecErrorSens("vito_consecutive_errors", HANumber::PrecisionP0);
 HANumber errorThresholdNumber("vito_error_threshold", HANumber::PrecisionP0);
 
 //###########################################################################
