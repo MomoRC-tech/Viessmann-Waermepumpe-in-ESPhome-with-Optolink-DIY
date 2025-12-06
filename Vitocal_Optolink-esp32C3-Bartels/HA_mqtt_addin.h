@@ -223,7 +223,7 @@ void setupHomeAssistant() {
 
 
 // VitoWiFi v3 instance and datapoints (defined elsewhere)
-extern VitoWiFi::VitoWiFi<VitoWiFi::VS1> vito;
+extern VitoWiFi::VitoWiFi<VitoWiFi::VS1> vitoWIFI;
 extern VitoWiFi::Datapoint setTempRaumSoll;
 extern VitoWiFi::Datapoint setTempRaumSollRed;
 extern VitoWiFi::Datapoint setTempHystWWsoll;
