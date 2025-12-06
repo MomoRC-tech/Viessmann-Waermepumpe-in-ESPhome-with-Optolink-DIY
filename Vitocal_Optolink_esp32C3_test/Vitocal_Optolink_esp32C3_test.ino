@@ -229,4 +229,8 @@ void loop() {
     // Enforce at least 1000ms before next attempt
     nextReadDueMillis = millis() + 2000;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ec99e67422b535a16cd78cfe73c8e8eea53071b2

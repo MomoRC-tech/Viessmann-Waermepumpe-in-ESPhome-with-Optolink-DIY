@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented here.
 
+## [v0.2.9] - 2025-12-04
+- ESP32-C3 test: increase deferred read/retry interval to 1s for stability
+- Tag triggers CI compile for both ESP8266 main and ESP32-C3 test
+
+## [v0.2.8] - 2025-12-04
+- ESP32-C3 test: add deferred scheduling and loop-based retry for VitoWiFi read chaining (200ms min)
+- Improves handling of queue-busy/timeouts by pacing requests
+
 ## [v0.2.5] - 2025-11-30
 - Version constant aligned with release tag (DEVICE_SWVERSION 0.2.5)
 - No functional code changes beyond version bump
