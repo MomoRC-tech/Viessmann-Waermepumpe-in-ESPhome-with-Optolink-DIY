@@ -1,12 +1,25 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
 #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
 #endif
 #include <ElegantOTA.h>
+
 #include <VitoWiFi.h>
+
+#include <WebSerial.h>
+
+IPAddress       local_IP(192, 168, 0, 222);
+IPAddress       gateway(192, 168, 0, 1);
+IPAddress       subnet(255, 255, 255, 0);
+IPAddress       primaryDNS(192, 168, 0, 1);   //optional
+IPAddress       secondaryDNS(192, 168, 0, 1);   //optional
+
+// Erstellung des WiFiMulti-Objekts
+WiFiMulti WiFiMulti;
 
 // ----------------------------------------------------------------------------
 // HARDWARE CONFIGURATION: ESP32-C3 Super Mini
@@ -21,15 +34,15 @@
 // ----------------------------------------------------------------------------
 
 #define OPTOLINK_SERIAL Serial0
-#define CONSOLE_SERIAL  Serial
+#define CONSOLE_SERIAL  Serial   // configure "Serial" or "WebSerial"
 #define SERIALBAUDRATE  115200
 
 // WiFi credentials: prefer local secrets.h, else fallback example
-#if __has_include("secrets.h")
+// #if __has_include("secrets.h")
 #include "secrets.h"
-#else
-#include "secrets.example.h"
-#endif
+// #else
+// #include "secrets.example.h"
+// #endif
 
 // Async web server for ElegantOTA
 AsyncWebServer server(80);
@@ -78,8 +91,8 @@ void onResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& 
   }
 
   // DAISY CHAIN: Successfully received data, now request the next one
-  // Schedule next read with a minimal 1000ms gap
-  nextReadDueMillis = millis() + 1000;
+  // Schedule next read with a minimal 2000ms gap
+  nextReadDueMillis = millis() + 2000;
 }
 
 void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
@@ -95,8 +108,8 @@ void onError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request)
   }
 
   // DAISY CHAIN: Even if error, move to next to prevent getting stuck
-  // Schedule next attempt after 1000ms to avoid immediate requeue busy
-  nextReadDueMillis = millis() + 1000;
+  // Schedule next attempt after 2000ms to avoid immediate requeue busy
+  nextReadDueMillis = millis() + 3000;
 }
 
 // ----------------------------------------------------------------------------
@@ -120,7 +133,7 @@ void readNextDatapoint() {
   } else {
     // Busy: schedule a retry after >=1000ms, keep sequence active
     CONSOLE_SERIAL.printf("Failed to queue request for %s\n", datapoints[currentDatapointIndex].name());
-    nextReadDueMillis = millis() + 1000;
+    nextReadDueMillis = millis() + 3000;
   }
 }
 
@@ -142,24 +155,29 @@ void startReadingSequence() {
 void setup() {
   // Initialize USB Console
   CONSOLE_SERIAL.begin(SERIALBAUDRATE);
+  CONSOLE_SERIAL.setDebugOutput(true); // IMPORTANT: ROUTE DEBUG NOT THROUGH THE OPTOLINK SERIAL!
   delay(2000); // Wait for USB CDC to enumerate
   CONSOLE_SERIAL.println("Booting ESP32-C3 VitoWiFi...");
 
-  // Connect WiFi
-  CONSOLE_SERIAL.printf("Connecting to WiFi SSID: %s\n", WIFI_SSID);
+  WiFiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
+  
+  Serial.println();
+  Serial.println();
+  Serial.print("Waiting for WiFi... ");
+
+  // 2. wait for connection
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  uint32_t t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000UL) {
-    delay(250);
-    CONSOLE_SERIAL.print('.');
+  WiFi.setTxPower(WIFI_POWER_8_5dBm); // 💡 workaround for esp32 c3 as of defect antenna design
+
+  while (WiFiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
   }
-  CONSOLE_SERIAL.println();
-  if (WiFi.status() == WL_CONNECTED) {
-    CONSOLE_SERIAL.printf("WiFi connected. IP: %s\n", WiFi.localIP().toString().c_str());
-  } else {
-    CONSOLE_SERIAL.println("WiFi not connected (continuing offline)");
-  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
   // Setup callbacks
   vitoWiFi.onResponse(onResponse);
@@ -171,9 +189,10 @@ void setup() {
 
   // Minimal web server and ElegantOTA
   server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send(200, "text/plain", "ESP32-C3 VitoWiFi test. OTA at /update");
+    request->send(200, "text/plain", "ESP32-C3 VitoWiFi test. OTA at /update. Webserial at /webserial");
   });
   ElegantOTA.begin(&server);
+  WebSerial.begin(&server);
   server.begin();
   CONSOLE_SERIAL.println("Web server started; ElegantOTA ready");
 
@@ -184,7 +203,7 @@ void loop() {
   static uint32_t lastMillis = 0;
   
   // Non-blocking timer: Every 5 seconds
-  if (millis() - lastMillis > 5000UL) {
+  if (millis() - lastMillis > 10000UL) {
     lastMillis = millis();
     startReadingSequence();
   }
@@ -192,12 +211,13 @@ void loop() {
   // Essential: Keep the library state machine running
   vitoWiFi.loop();
   ElegantOTA.loop();
+  WebSerial.loop();
 
   // Handle deferred next read when due
   if (isReadingSequence && nextReadDueMillis != 0 && (long)(millis() - nextReadDueMillis) >= 0) {
     // Attempt next queued read step
     readNextDatapoint();
     // Enforce at least 1000ms before next attempt
-    nextReadDueMillis = millis() + 1000;
+    nextReadDueMillis = millis() + 2000;
   }
 }
