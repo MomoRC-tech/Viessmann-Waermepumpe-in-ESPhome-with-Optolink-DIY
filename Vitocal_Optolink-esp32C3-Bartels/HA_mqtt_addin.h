@@ -7,6 +7,9 @@
 #include "Vitocal_polling.h"
 extern volatile uint32_t vitoErrorThreshold; // from main sketch
 
+// prefix to have unique IDs
+#define HA_PREFIX "wp_bartels_"   
+
 //*** forward declararions ***************************************************
 void onMQTTConnected(void);
 void onMQTTMessage(const char* topic, const uint8_t* payload, uint16_t length);
@@ -25,49 +28,49 @@ void onModeCommand(HAHVAC::Mode mode, HAHVAC* sender);
 void onManualModeCommand(int8_t index, HASelect* sender);
 
 //*** sensor definitions ***************************************************
-HASensorNumber RelEHeizStufeSens    ("EHeizstufe",        HANumber::PrecisionP0);   //working
-HASensorNumber AussenTempSens       ("Aussentemperatur",  HANumber::PrecisionP1);   //working
-HASensorNumber WWtempObenSens       ("WarmwasserOben",    HANumber::PrecisionP1);   //working
-HASensorNumber VorlaufTempSetSens   ("VorlaufSoll",       HANumber::PrecisionP0);   //working
-HASensorNumber VorlaufTempSens      ("Vorlauf",           HANumber::PrecisionP0);   //working
-HASensorNumber RuecklaufTempSens    ("Ruecklauf",         HANumber::PrecisionP0);   //working
+HASensorNumber RelEHeizStufeSens    (HA_PREFIX "EHeizstufe",        HANumber::PrecisionP0);   //working
+HASensorNumber AussenTempSens       (HA_PREFIX "Aussentemperatur",  HANumber::PrecisionP1);   //working
+HASensorNumber WWtempObenSens       (HA_PREFIX "WarmwasserOben",    HANumber::PrecisionP1);   //working
+HASensorNumber VorlaufTempSetSens   (HA_PREFIX "VorlaufSoll",       HANumber::PrecisionP0);   //working
+HASensorNumber VorlaufTempSens      (HA_PREFIX "Vorlauf",           HANumber::PrecisionP0);   //working
+HASensorNumber RuecklaufTempSens    (HA_PREFIX "Ruecklauf",         HANumber::PrecisionP0);   //working
 
-HABinarySensor heizkreispumpeSens       ("Heizkreispumpe");
-HABinarySensor WWzirkulationspumpeSens  ("WWZirkulation");
-HASensor       ventilHeizenWWSens       ("VentilHeizenWW");
-HABinarySensor RelVerdichterSens        ("Verdichter");
-HABinarySensor RelPrimaerquelleSens      ("Grundwasserpumpe");
-HABinarySensor RelSekundaerPumpeSens    ("Sekundaerpumpe");
+HABinarySensor heizkreispumpeSens       (HA_PREFIX "Heizkreispumpe");
+HABinarySensor WWzirkulationspumpeSens  (HA_PREFIX "WWZirkulation");
+HASensor       ventilHeizenWWSens       (HA_PREFIX "VentilHeizenWW");
+HABinarySensor RelVerdichterSens        (HA_PREFIX "Verdichter");
+HABinarySensor RelPrimaerquelleSens      (HA_PREFIX "Grundwasserpumpe");
+HABinarySensor RelSekundaerPumpeSens    (HA_PREFIX "Sekundaerpumpe");
 
-HABinarySensor Stoerung         ("WPStoerung");
+HABinarySensor Stoerung         (HA_PREFIX "WPStoerung");
 
 HAHVAC HVACwaermepumpe(
-  "Waermepumpe",
+  HA_PREFIX "Waermepumpe",
   HAHVAC::TargetTemperatureFeature | HAHVAC::PowerFeature | HAHVAC::ModesFeature
 );
 
 //*** set values ***************************************************
-HANumber  WWtempSollSens       ("WarmwasserSoll",     HANumber::PrecisionP0);
-HANumber  WWtempSoll2Sens      ("WarmwasserSoll2",    HANumber::PrecisionP0);
-HANumber  RaumSollTempSens     ("Raumtemperatur",     HANumber::PrecisionP1);
-HANumber  HystWWsollSens       ("HystereseWWsoll",    HANumber::PrecisionP1);
+HANumber  WWtempSollSens       (HA_PREFIX "WarmwasserSoll",     HANumber::PrecisionP0);
+HANumber  WWtempSoll2Sens      (HA_PREFIX "WarmwasserSoll2",    HANumber::PrecisionP0);
+HANumber  RaumSollTempSens     (HA_PREFIX "Raumtemperatur",     HANumber::PrecisionP1);
+HANumber  HystWWsollSens       (HA_PREFIX "HystereseWWsoll",    HANumber::PrecisionP1);
 
-HANumber  HKneigungSens       ("NeigungHeizkennlinie",    HANumber::PrecisionP1);
-HANumber  HKniveauSens        ("NiveauHeizkennlinie",    HANumber::PrecisionP1);
+HANumber  HKneigungSens       (HA_PREFIX "NeigungHeizkennlinie",    HANumber::PrecisionP1);
+HANumber  HKniveauSens        (HA_PREFIX "NiveauHeizkennlinie",    HANumber::PrecisionP1);
 
-HANumber  RaumSollRedSens      ("RaumtemperaturRed",  HANumber::PrecisionP1);
-HASensor  operationmodeSens    ("Betriebsmodus"); 
-HASensor  manualmodeSens       ("ManualMode");
-HASelect  selectManualMode     ("setManualMode");
+HANumber  RaumSollRedSens      (HA_PREFIX "RaumtemperaturRed",  HANumber::PrecisionP1);
+HASensor  operationmodeSens    (HA_PREFIX "Betriebsmodus"); 
+HASensor  manualmodeSens       (HA_PREFIX "ManualMode");
+HASelect  selectManualMode     (HA_PREFIX "setManualMode");
 
-HANumber fastPollInterval("fastPollInterval");
-HANumber mediumPollInterval("mediumPollInterval");
-HANumber slowPollInterval("slowPollInterval");
+HANumber fastPollInterval(HA_PREFIX "fastPollInterval");
+HANumber mediumPollInterval(HA_PREFIX "mediumPollInterval");
+HANumber slowPollInterval(HA_PREFIX "slowPollInterval");
 
 // Diagnostics: error counters and threshold
-HASensorNumber vitoErrorCountSens("vito_error_count", HANumber::PrecisionP0);
-HASensorNumber vitoConsecErrorSens("vito_consecutive_errors", HANumber::PrecisionP0);
-HANumber errorThresholdNumber("vito_error_threshold", HANumber::PrecisionP0);
+HASensorNumber vitoErrorCountSens(HA_PREFIX "vito_error_count", HANumber::PrecisionP0);
+HASensorNumber vitoConsecErrorSens(HA_PREFIX "vito_consecutive_errors", HANumber::PrecisionP0);
+HANumber errorThresholdNumber(HA_PREFIX "vito_error_threshold", HANumber::PrecisionP0);
 
 //###########################################################################
 // setup home assistant integration##########################################

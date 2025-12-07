@@ -67,7 +67,7 @@ inline bool isDp(const VitoWiFi::Datapoint& req, const VitoWiFi::Datapoint& dp) 
 
 const char*     PARAM_INPUT_1 = "output";
 const char*     PARAM_INPUT_2 = "state";
-IPAddress       local_IP(192, 168, 0, 60);
+IPAddress       local_IP(192, 168, 0, 65);
 IPAddress       gateway(192, 168, 0, 1);
 IPAddress       subnet(255, 255, 255, 0);
 IPAddress       primaryDNS(192, 168, 0, 1);   //optional
@@ -432,7 +432,7 @@ void setup() {
 
   // Minimal web server
   server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send(200, "text/plain", "ESP32-C3 VitoWiFi test. OTA at /update. Webserial at /webserial");
+    request->send(200, "text/plain", "Bartels ESP32-C3 VitoWiFi. OTA at /update. Webserial at /webserial");
   });
 
   // start ota, webserial, server
