@@ -110,24 +110,29 @@ void setupHomeAssistant() {
     selectManualMode.onCommand(onManualModeCommand); 
 
     WWtempSollSens.setIcon("mdi:state-machine");             WWtempSollSens.setName("Warmwasser Soll");             WWtempSollSens.setUnitOfMeasurement("C");         
-    WWtempSollSens.setMin(20);  WWtempSollSens.setMax(60);   WWtempSollSens.setStep(1);                             WWtempSollSens.onCommand(setWWSoll);
+    WWtempSollSens.setMin(20);  WWtempSollSens.setMax(60);   WWtempSollSens.setStep(1);                             WWtempSollSens.onCommand(setWWSoll);            WWtempSollSens.setMode(HANumber::Mode::ModeBox);  
     WWtempSoll2Sens.setIcon("mdi:state-machine");             WWtempSoll2Sens.setName("Warmwasser Soll2");             WWtempSoll2Sens.setUnitOfMeasurement("C");         
-    WWtempSoll2Sens.setMin(20);  WWtempSoll2Sens.setMax(60);   WWtempSoll2Sens.setStep(1);                             WWtempSoll2Sens.onCommand(setWWSoll2);
+    WWtempSoll2Sens.setMin(20);  WWtempSoll2Sens.setMax(60);   WWtempSoll2Sens.setStep(1);                             WWtempSoll2Sens.onCommand(setWWSoll2);       WWtempSoll2Sens.setMode(HANumber::Mode::ModeBox);
 
     HKneigungSens.setIcon("mdi:chart-bell-curve-cumulative");             HKneigungSens.setName("Neigung Heizkennlinie");       HKneigungSens.setUnitOfMeasurement("-");         
     HKneigungSens.setMin(0);  HKneigungSens.setMax(1);      HKneigungSens.setStep(0.1);                           HKneigungSens.onCommand(setHKneigung);
+    HKneigungSens.setMode(HANumber::Mode::ModeBox);
     
     HKniveauSens.setIcon("mdi:chart-bell-curve-cumulative");              HKniveauSens.setName("Niveau Heizkennlinie");         HKniveauSens.setUnitOfMeasurement("K");         
     HKniveauSens.setMin(0);   HKniveauSens.setMax(10);     HKniveauSens.setStep(0.1);                             HKniveauSens.onCommand(setHKniveau);
+    HKniveauSens.setMode(HANumber::Mode::ModeBox);
 
     HystWWsollSens.setIcon("mdi:state-machine");               HystWWsollSens.setName("Hysterese WW Soll");       HystWWsollSens.setUnitOfMeasurement("C"); 
     HystWWsollSens.setMin(1);  HystWWsollSens.setMax(20);      HystWWsollSens.setStep(0.5);                       HystWWsollSens.onCommand(setHystWWsoll); 
+    HystWWsollSens.setMode(HANumber::Mode::ModeBox);
 
     RaumSollTempSens.setIcon("mdi:state-machine");               RaumSollTempSens.setName("Raumtemperatur Soll");     RaumSollTempSens.setUnitOfMeasurement("C"); 
     RaumSollTempSens.setMin(10);  RaumSollTempSens.setMax(30);   RaumSollTempSens.setStep(0.5);                       RaumSollTempSens.onCommand(setRaumSoll);    
-    
+    RaumSollTempSens.setMode(HANumber::Mode::ModeBox);
+
     RaumSollRedSens.setIcon("mdi:state-machine");                RaumSollRedSens.setName("Raumtemperatur Red. Soll");     RaumSollRedSens.setUnitOfMeasurement("C");  
     RaumSollRedSens.setMin(10);   RaumSollRedSens.setMax(30);    RaumSollRedSens.setStep(0.5);                            RaumSollRedSens.onCommand(setRaumSollRed);  
+    RaumSollRedSens.setMode(HANumber::Mode::ModeBox);
 
     // polling interval controls (seconds) - allow tuning from Home Assistant
     fastPollInterval.setIcon("mdi:timer-sand");
@@ -136,6 +141,7 @@ void setupHomeAssistant() {
     fastPollInterval.setMin(5);
     fastPollInterval.setMax(300);
     fastPollInterval.setStep(1);
+    fastPollInterval.setMode(HANumber::Mode::ModeBox);  
     fastPollInterval.setRetain(true);  // keep value across broker restarts
     fastPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
@@ -153,6 +159,7 @@ void setupHomeAssistant() {
     mediumPollInterval.setMin(5);
     mediumPollInterval.setMax(600);
     mediumPollInterval.setStep(1);
+    mediumPollInterval.setMode(HANumber::Mode::ModeBox); 
     mediumPollInterval.setRetain(true);
     mediumPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
@@ -170,6 +177,7 @@ void setupHomeAssistant() {
     slowPollInterval.setMin(5);
     slowPollInterval.setMax(1800);
     slowPollInterval.setStep(1);
+    slowPollInterval.setMode(HANumber::Mode::ModeBox); 
     slowPollInterval.setRetain(true);
     slowPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
@@ -215,6 +223,7 @@ void setupHomeAssistant() {
     errorThresholdNumber.setMin(1);
     errorThresholdNumber.setMax(100);
     errorThresholdNumber.setStep(1);
+    errorThresholdNumber.setMode(HANumber::Mode::ModeBox);  
     errorThresholdNumber.setRetain(true);
     errorThresholdNumber.onCommand([](HANumeric value, HANumber* sender) {
         if (!value.isSet() || sender == nullptr) {

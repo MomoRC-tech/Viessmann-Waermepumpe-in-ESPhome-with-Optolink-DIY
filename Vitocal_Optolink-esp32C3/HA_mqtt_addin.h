@@ -7,6 +7,9 @@
 #include "Vitocal_polling.h"
 extern volatile uint32_t vitoErrorThreshold; // from main sketch
 
+// prefix to have unique IDs
+#define HA_PREFIX "wp_bartels_"   
+
 //*** forward declararions ***************************************************
 void onMQTTConnected(void);
 void onMQTTMessage(const char* topic, const uint8_t* payload, uint16_t length);
@@ -25,49 +28,49 @@ void onModeCommand(HAHVAC::Mode mode, HAHVAC* sender);
 void onManualModeCommand(int8_t index, HASelect* sender);
 
 //*** sensor definitions ***************************************************
-HASensorNumber RelEHeizStufeSens    ("EHeizstufe",        HANumber::PrecisionP0);   //working
-HASensorNumber AussenTempSens       ("Aussentemperatur",  HANumber::PrecisionP1);   //working
-HASensorNumber WWtempObenSens       ("WarmwasserOben",    HANumber::PrecisionP1);   //working
-HASensorNumber VorlaufTempSetSens   ("VorlaufSoll",       HANumber::PrecisionP0);   //working
-HASensorNumber VorlaufTempSens      ("Vorlauf",           HANumber::PrecisionP0);   //working
-HASensorNumber RuecklaufTempSens    ("Ruecklauf",         HANumber::PrecisionP0);   //working
+HASensorNumber RelEHeizStufeSens    (HA_PREFIX "EHeizstufe",        HANumber::PrecisionP0);   //working
+HASensorNumber AussenTempSens       (HA_PREFIX "Aussentemperatur",  HANumber::PrecisionP1);   //working
+HASensorNumber WWtempObenSens       (HA_PREFIX "WarmwasserOben",    HANumber::PrecisionP1);   //working
+HASensorNumber VorlaufTempSetSens   (HA_PREFIX "VorlaufSoll",       HANumber::PrecisionP0);   //working
+HASensorNumber VorlaufTempSens      (HA_PREFIX "Vorlauf",           HANumber::PrecisionP0);   //working
+HASensorNumber RuecklaufTempSens    (HA_PREFIX "Ruecklauf",         HANumber::PrecisionP0);   //working
 
-HABinarySensor heizkreispumpeSens       ("Heizkreispumpe");
-HABinarySensor WWzirkulationspumpeSens  ("WWZirkulation");
-HASensor       ventilHeizenWWSens       ("VentilHeizenWW");
-HABinarySensor RelVerdichterSens        ("Verdichter");
-HABinarySensor RelPrimaerquelleSens      ("Grundwasserpumpe");
-HABinarySensor RelSekundaerPumpeSens    ("Sekundaerpumpe");
+HABinarySensor heizkreispumpeSens       (HA_PREFIX "Heizkreispumpe");
+HABinarySensor WWzirkulationspumpeSens  (HA_PREFIX "WWZirkulation");
+HASensor       ventilHeizenWWSens       (HA_PREFIX "VentilHeizenWW");
+HABinarySensor RelVerdichterSens        (HA_PREFIX "Verdichter");
+HABinarySensor RelPrimaerquelleSens      (HA_PREFIX "Grundwasserpumpe");
+HABinarySensor RelSekundaerPumpeSens    (HA_PREFIX "Sekundaerpumpe");
 
-HABinarySensor Stoerung         ("WPStoerung");
+HABinarySensor Stoerung         (HA_PREFIX "WPStoerung");
 
 HAHVAC HVACwaermepumpe(
-  "Waermepumpe",
+  HA_PREFIX "Waermepumpe",
   HAHVAC::TargetTemperatureFeature | HAHVAC::PowerFeature | HAHVAC::ModesFeature
 );
 
 //*** set values ***************************************************
-HANumber  WWtempSollSens       ("WarmwasserSoll",     HANumber::PrecisionP0);
-HANumber  WWtempSoll2Sens      ("WarmwasserSoll2",    HANumber::PrecisionP0);
-HANumber  RaumSollTempSens     ("Raumtemperatur",     HANumber::PrecisionP1);
-HANumber  HystWWsollSens       ("HystereseWWsoll",    HANumber::PrecisionP1);
+HANumber  WWtempSollSens       (HA_PREFIX "WarmwasserSoll",     HANumber::PrecisionP0);
+HANumber  WWtempSoll2Sens      (HA_PREFIX "WarmwasserSoll2",    HANumber::PrecisionP0);
+HANumber  RaumSollTempSens     (HA_PREFIX "Raumtemperatur",     HANumber::PrecisionP1);
+HANumber  HystWWsollSens       (HA_PREFIX "HystereseWWsoll",    HANumber::PrecisionP1);
 
-HANumber  HKneigungSens       ("NeigungHeizkennlinie",    HANumber::PrecisionP1);
-HANumber  HKniveauSens        ("NiveauHeizkennlinie",    HANumber::PrecisionP1);
+HANumber  HKneigungSens       (HA_PREFIX "NeigungHeizkennlinie",    HANumber::PrecisionP1);
+HANumber  HKniveauSens        (HA_PREFIX "NiveauHeizkennlinie",    HANumber::PrecisionP1);
 
-HANumber  RaumSollRedSens      ("RaumtemperaturRed",  HANumber::PrecisionP1);
-HASensor  operationmodeSens    ("Betriebsmodus"); 
-HASensor  manualmodeSens       ("ManualMode");
-HASelect  selectManualMode     ("setManualMode");
+HANumber  RaumSollRedSens      (HA_PREFIX "RaumtemperaturRed",  HANumber::PrecisionP1);
+HASensor  operationmodeSens    (HA_PREFIX "Betriebsmodus"); 
+HASensor  manualmodeSens       (HA_PREFIX "ManualMode");
+HASelect  selectManualMode     (HA_PREFIX "setManualMode");
 
-HANumber fastPollInterval("fastPollInterval");
-HANumber mediumPollInterval("mediumPollInterval");
-HANumber slowPollInterval("slowPollInterval");
+HANumber fastPollInterval(HA_PREFIX "fastPollInterval");
+HANumber mediumPollInterval(HA_PREFIX "mediumPollInterval");
+HANumber slowPollInterval(HA_PREFIX "slowPollInterval");
 
 // Diagnostics: error counters and threshold
-HASensorNumber vitoErrorCountSens("vito_error_count", HANumber::PrecisionP0);
-HASensorNumber vitoConsecErrorSens("vito_consecutive_errors", HANumber::PrecisionP0);
-HANumber errorThresholdNumber("vito_error_threshold", HANumber::PrecisionP0);
+HASensorNumber vitoErrorCountSens(HA_PREFIX "vito_error_count", HANumber::PrecisionP0);
+HASensorNumber vitoConsecErrorSens(HA_PREFIX "vito_consecutive_errors", HANumber::PrecisionP0);
+HANumber errorThresholdNumber(HA_PREFIX "vito_error_threshold", HANumber::PrecisionP0);
 
 //###########################################################################
 // setup home assistant integration##########################################
@@ -107,24 +110,29 @@ void setupHomeAssistant() {
     selectManualMode.onCommand(onManualModeCommand); 
 
     WWtempSollSens.setIcon("mdi:state-machine");             WWtempSollSens.setName("Warmwasser Soll");             WWtempSollSens.setUnitOfMeasurement("C");         
-    WWtempSollSens.setMin(20);  WWtempSollSens.setMax(60);   WWtempSollSens.setStep(1);                             WWtempSollSens.onCommand(setWWSoll);
+    WWtempSollSens.setMin(20);  WWtempSollSens.setMax(60);   WWtempSollSens.setStep(1);                             WWtempSollSens.onCommand(setWWSoll);            WWtempSollSens.setMode(HANumber::Mode::Box);  
     WWtempSoll2Sens.setIcon("mdi:state-machine");             WWtempSoll2Sens.setName("Warmwasser Soll2");             WWtempSoll2Sens.setUnitOfMeasurement("C");         
-    WWtempSoll2Sens.setMin(20);  WWtempSoll2Sens.setMax(60);   WWtempSoll2Sens.setStep(1);                             WWtempSoll2Sens.onCommand(setWWSoll2);
+    WWtempSoll2Sens.setMin(20);  WWtempSoll2Sens.setMax(60);   WWtempSoll2Sens.setStep(1);                             WWtempSoll2Sens.onCommand(setWWSoll2);       WWtempSoll2Sens.setMode(HANumber::Mode::Box);
 
     HKneigungSens.setIcon("mdi:chart-bell-curve-cumulative");             HKneigungSens.setName("Neigung Heizkennlinie");       HKneigungSens.setUnitOfMeasurement("-");         
     HKneigungSens.setMin(0);  HKneigungSens.setMax(1);      HKneigungSens.setStep(0.1);                           HKneigungSens.onCommand(setHKneigung);
+    HKneigungSens.setMode(HANumber::Mode::Box);
     
     HKniveauSens.setIcon("mdi:chart-bell-curve-cumulative");              HKniveauSens.setName("Niveau Heizkennlinie");         HKniveauSens.setUnitOfMeasurement("K");         
     HKniveauSens.setMin(0);   HKniveauSens.setMax(10);     HKniveauSens.setStep(0.1);                             HKniveauSens.onCommand(setHKniveau);
+    HKniveauSens.setMode(HANumber::Mode::Box);
 
     HystWWsollSens.setIcon("mdi:state-machine");               HystWWsollSens.setName("Hysterese WW Soll");       HystWWsollSens.setUnitOfMeasurement("C"); 
     HystWWsollSens.setMin(1);  HystWWsollSens.setMax(20);      HystWWsollSens.setStep(0.5);                       HystWWsollSens.onCommand(setHystWWsoll); 
+    HystWWsollSens.setMode(HANumber::Mode::Box);
 
     RaumSollTempSens.setIcon("mdi:state-machine");               RaumSollTempSens.setName("Raumtemperatur Soll");     RaumSollTempSens.setUnitOfMeasurement("C"); 
     RaumSollTempSens.setMin(10);  RaumSollTempSens.setMax(30);   RaumSollTempSens.setStep(0.5);                       RaumSollTempSens.onCommand(setRaumSoll);    
+    RaumSollTempSens.setMode(HANumber::Mode::Box);
     
     RaumSollRedSens.setIcon("mdi:state-machine");                RaumSollRedSens.setName("Raumtemperatur Red. Soll");     RaumSollRedSens.setUnitOfMeasurement("C");  
     RaumSollRedSens.setMin(10);   RaumSollRedSens.setMax(30);    RaumSollRedSens.setStep(0.5);                            RaumSollRedSens.onCommand(setRaumSollRed);  
+    RaumSollRedSens.setMode(HANumber::Mode::Box);
 
     // polling interval controls (seconds) - allow tuning from Home Assistant
     fastPollInterval.setIcon("mdi:timer-sand");
@@ -133,6 +141,7 @@ void setupHomeAssistant() {
     fastPollInterval.setMin(5);
     fastPollInterval.setMax(300);
     fastPollInterval.setStep(1);
+    fastPollInterval.setMode(HANumber::Mode::Box);  
     fastPollInterval.setRetain(true);  // keep value across broker restarts
     fastPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
@@ -150,6 +159,7 @@ void setupHomeAssistant() {
     mediumPollInterval.setMin(5);
     mediumPollInterval.setMax(600);
     mediumPollInterval.setStep(1);
+    mediumPollInterval.setMode(HANumber::Mode::Box); 
     mediumPollInterval.setRetain(true);
     mediumPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
@@ -167,6 +177,7 @@ void setupHomeAssistant() {
     slowPollInterval.setMin(5);
     slowPollInterval.setMax(1800);
     slowPollInterval.setStep(1);
+    slowPollInterval.setMode(HANumber::Mode::Box); 
     slowPollInterval.setRetain(true);
     slowPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
@@ -198,6 +209,7 @@ void setupHomeAssistant() {
     fastPollInterval.setState((float)(vitoFastState.intervalMs / 1000UL));
     mediumPollInterval.setState((float)(vitoMediumState.intervalMs / 1000UL));
     slowPollInterval.setState((float)(vitoSlowState.intervalMs / 1000UL));
+    
 
     // diagnostics setup
     vitoErrorCountSens.setIcon("mdi:counter");
@@ -211,6 +223,7 @@ void setupHomeAssistant() {
     errorThresholdNumber.setMin(1);
     errorThresholdNumber.setMax(100);
     errorThresholdNumber.setStep(1);
+    errorThresholdNumber.setMode(HANumber::Mode::Box);  
     errorThresholdNumber.setRetain(true);
     errorThresholdNumber.onCommand([](HANumeric value, HANumber* sender) {
         if (!value.isSet() || sender == nullptr) {
