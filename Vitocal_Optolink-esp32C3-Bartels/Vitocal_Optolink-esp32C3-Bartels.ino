@@ -22,6 +22,7 @@ static uint64_t rtSumUs     = 0;
 static uint32_t rtSamples   = 0;
 static uint32_t rtPrevUs    = 0;
 
+
 // ElegantOTA configuration: use AsyncWebServer backend
 #ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
   #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
@@ -99,8 +100,6 @@ HAMqtt mqtt(client, device, 30);
 // HA sensors and voids
 #include "HA_mqtt_addin.h"
 
-
-
 // other
 // Loop bookkeeping and simple runtime state
 static int     count     = 0;
@@ -115,9 +114,9 @@ static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 
 // Default group intervals tuned for stability vs. throughput
-static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 20000UL; // 20s: relays/pumps/compressor/status
-static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 40000UL; // 40s: temperatures
-static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 60000UL; // 60s: setpoints/hysteresis/heating curve
+static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 40000UL; // relays/pumps/compressor/status
+static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 64000UL; // temperatures
+static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 180000UL; // setpoints/hysteresis/heating curve
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
 VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
@@ -126,7 +125,7 @@ VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 // - at most one in-flight request at a time
 // - enforce a small gap after each response/error
 #ifndef VITO_RESPONSE_GAP_MS
-#define VITO_RESPONSE_GAP_MS 200UL   // ms after each response before next request
+#define VITO_RESPONSE_GAP_MS 50UL   // ms after each response before next request
 #endif
 static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 
@@ -162,19 +161,69 @@ static const char* labelOrFallback(uint8_t index, const char* const* table, size
   return "Unknown";
 }
 
+// per-DP last-success timestamps (ms since boot)
+static uint32_t lastTempOutsideMs      = 0;
+static uint32_t lastWWobenMs           = 0;
+static uint32_t lastVorlaufSollMs      = 0;
+static uint32_t lastVorlaufIstMs       = 0;
+static uint32_t lastRuecklaufMs        = 0;
+static uint32_t lastRelEHeiz1Ms        = 0;
+static uint32_t lastRelEHeiz2Ms        = 0;
+static uint32_t lastHeizkreispumpeMs   = 0;
+static uint32_t lastWWZirkPumpeMs      = 0;
+static uint32_t lastRelVerdichterMs    = 0;
+static uint32_t lastRelPrimaerMs       = 0;
+static uint32_t lastRelSekundaerMs     = 0;
+static uint32_t lastVentilHeizenWWMs   = 0;
+static uint32_t lastOperationModeMs    = 0;
+static uint32_t lastManualModeMs       = 0;
+static uint32_t lastRaumSollMs         = 0;
+static uint32_t lastRaumSollRedMs      = 0;
+static uint32_t lastWWSollMs           = 0;
+static uint32_t lastWWSoll2Ms          = 0;
+static uint32_t lastHystWWSollMs       = 0;
+static uint32_t lastHKniveauMs         = 0;
+static uint32_t lastHKneigungMs        = 0;
+
+// --- Per-datapoint timing info: request -> response round-trip ----------
+
+struct DpTimingInfo {
+    const VitoWiFi::Datapoint* dp;
+    uint32_t lastRequestMs;   // when we queued the read()
+};
+
+DpTimingInfo dpTiming[] = {
+    { &dpTempOutside,      0 },
+    { &dpWWoben,           0 },
+    { &dpVorlaufSoll,      0 },
+    { &dpVorlaufIst,       0 },
+    { &dpRuecklauf,        0 },
+    { &dpRelEHeizStufe1,   0 },
+    { &dpRelEHeizStufe2,   0 },
+    { &dpHeizkreispumpe,   0 },
+    { &dpWWZirkPumpe,      0 },
+    { &dpRelVerdichter,    0 },
+    { &dpRelPrimaerquelle, 0 },
+    { &dpRelSekundaerPumpe,0 },
+    { &dpVentilHeizenWW,   0 },
+    { &dpOperationMode,    0 },
+    { &dpManualMode,       0 },
+    { &dpTempRaumSoll,     0 },
+    { &dpTempRaumSollRed,  0 },
+    { &dpTempWWSoll,       0 },
+    { &dpTempWWSoll2,      0 },
+    { &dpTempHystWWSoll,   0 },
+    { &dpTempHKniveau,     0 },
+    { &dpTempHKNeigung,    0 },
+    { &dpStoerung,         0 }
+};
+
+constexpr size_t dpTimingCount = sizeof(dpTiming) / sizeof(dpTiming[0]);
+
+
 // VitoWiFi datapoint polling groups
-
-// testgroup
-  VitoWiFi::Datapoint* vitoTest[] = {
-    &dpTempOutside
-  };
-  const int vitoTestSize = sizeof(vitoTest) / sizeof(vitoTest[0]);
-  VitoPollGroupState vitoTestState = {0, 0, 0, 10000UL}; // 10s interval
-
-
 // fast: relays, pumps, compressor, error (operational status)
 VitoWiFi::Datapoint* vitoFast[] = {
-  &dpCompFrequency,
   &dpHeizkreispumpe,
   &dpWWZirkPumpe,
   &dpRelVerdichter,
@@ -183,8 +232,6 @@ VitoWiFi::Datapoint* vitoFast[] = {
   &dpRelEHeizStufe1,
   &dpRelEHeizStufe2,
   &dpVentilHeizenWW,
-  &dpOperationMode,
-  &dpManualMode,
   &dpStoerung
 };
 const int vitoFastSize = sizeof(vitoFast) / sizeof(vitoFast[0]);
@@ -195,7 +242,9 @@ VitoWiFi::Datapoint* vitoMedium[] = {
   &dpWWoben,
   &dpVorlaufSoll,
   &dpVorlaufIst,
-  &dpRuecklauf
+  &dpRuecklauf,
+  &dpOperationMode,
+  &dpManualMode,
 };
 const int vitoMediumSize = sizeof(vitoMedium) / sizeof(vitoMedium[0]);
 
@@ -210,6 +259,57 @@ VitoWiFi::Datapoint* vitoSlow[] = {
   &dpTempHKNeigung
 };
 const int vitoSlowSize = sizeof(vitoSlow) / sizeof(vitoSlow[0]);
+
+// --- per-DP timing helpers -------------------------------------
+inline void logDpFloat(const char* tag, float val, uint32_t& lastMs) {
+    uint32_t now = millis();
+    uint32_t dt  = lastMs ? (now - lastMs) : 0;
+    lastMs = now;
+
+    CONSOLE_SERIAL.print(tag);
+    CONSOLE_SERIAL.print(": ");
+    CONSOLE_SERIAL.print(val, 1);
+    if (dt) {
+        CONSOLE_SERIAL.print(" (Δt=");
+        CONSOLE_SERIAL.print(dt);
+        CONSOLE_SERIAL.print(" ms)");
+    }
+    CONSOLE_SERIAL.println();
+}
+
+inline void logDpUint(const char* tag, uint8_t v, uint32_t& lastMs) {
+    uint32_t now = millis();
+    uint32_t dt  = lastMs ? (now - lastMs) : 0;
+    lastMs = now;
+
+    CONSOLE_SERIAL.print(tag);
+    CONSOLE_SERIAL.print(": ");
+    CONSOLE_SERIAL.print(v);
+    if (dt) {
+        CONSOLE_SERIAL.print(" (Δt=");
+        CONSOLE_SERIAL.print(dt);
+        CONSOLE_SERIAL.print(" ms)");
+    }
+    CONSOLE_SERIAL.println();
+}
+
+inline void logDpMode(const char* tag, uint8_t v, const char* label, uint32_t& lastMs) {
+    uint32_t now = millis();
+    uint32_t dt  = lastMs ? (now - lastMs) : 0;
+    lastMs = now;
+
+    CONSOLE_SERIAL.print(tag);
+    CONSOLE_SERIAL.print(": ");
+    CONSOLE_SERIAL.print(v);
+    CONSOLE_SERIAL.print(" -> ");
+    CONSOLE_SERIAL.print(label);
+    if (dt) {
+        CONSOLE_SERIAL.print(" (Δt=");
+        CONSOLE_SERIAL.print(dt);
+        CONSOLE_SERIAL.print(" ms)");
+    }
+    CONSOLE_SERIAL.println();
+}
 
 
 // Run one paced polling step for a group.
@@ -239,8 +339,7 @@ bool pollVitoGroup(
         return false;
     }
 
-    // 2) Respect group start-to-start interval:
-    //    when index == 0, we are about to start a new round.
+    // 2) Respect group start-to-start interval
     if (state.index == 0 && state.lastRoundEndMs != 0) {
         if ((long)(now - state.lastRoundEndMs) < (long)state.intervalMs) {
             return false;
@@ -255,22 +354,26 @@ bool pollVitoGroup(
     VitoWiFi::Datapoint* dp = group[state.index];
 
     // 4) Try to queue the next datapoint.
-    //    VitoWiFi::read() returns false if it's still busy internally.
     if (vitoWIFI.read(*dp)) {
         // We successfully queued one request.
         vitoBusy = true;
         state.lastRequestMs = now;
 
-        // First datapoint of a new round -> store start time of the round.
+        // remember when this particular DP was requested
+        for (size_t i = 0; i < dpTimingCount; ++i) {
+            if (isDp(*dpTiming[i].dp, *dp)) {
+                dpTiming[i].lastRequestMs = now;
+                break;
+            }
+        }
+
         if (state.index == 0) {
-            state.lastRoundEndMs = now;  // "start-of-round" timestamp now
+            state.lastRoundEndMs = now;  // start-of-round timestamp
         }
 
         state.index++;
         if (state.index >= groupSize) {
-            // Round finished -> next call will see index == 0 and enforce interval
             state.index = 0;
-            // NOTE: we do NOT touch lastRoundEndMs here; it still holds start-of-round.
         }
 
         return true;
@@ -280,6 +383,7 @@ bool pollVitoGroup(
     // so we can retry the same datapoint later.
     return false;
 }
+
 
 
 //## setup#####################################################################
@@ -422,100 +526,153 @@ void loop() {
 
 
 //** VitoWiFi response/error handlers (v3) ******************************
-
 void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request) {
     vitoBusy = false;
-    vitoLastResponseMs = millis();
+    uint32_t nowMs = millis();
+    vitoLastResponseMs = nowMs;
 
-  VitoWiFi::VariantValue value = request.decode(data, length);
-  const char* name = request.name();
+    // compute time between request and this response
+    uint32_t dtReqMs = 0;
+    for (size_t i = 0; i < dpTimingCount; ++i) {
+        if (isDp(request, *dpTiming[i].dp)) {
+            if (dpTiming[i].lastRequestMs != 0) {
+                dtReqMs = nowMs - dpTiming[i].lastRequestMs;
+            }
+            break;
+        }
+    }
 
-  CONSOLE_SERIAL.print("onVitoResponse for ");
-  CONSOLE_SERIAL.println(name);
+    VitoWiFi::VariantValue value = request.decode(data, length);
+    const char* name = request.name();
 
-  if (isDp(request, dpTempOutside)) {
-      float temp = value;
-      AussenTempSens.setValue(temp);
-      CONSOLE_SERIAL.println("tmpAu");
-  } else if (isDp(request, dpWWoben)) {
-      float temp = value;
-      WWtempObenSens.setValue(temp);
-      CONSOLE_SERIAL.println("WWo");
-  } else if (isDp(request, dpVorlaufSoll)) {
-      float temp = value;
-      VorlaufTempSetSens.setValue(temp);
-  } else if (isDp(request, dpVorlaufIst)) {
-      float temp = value;
-      VorlaufTempSens.setValue(temp);
-      HVACwaermepumpe.setCurrentTemperature(temp);
-  } else if (isDp(request, dpRuecklauf)) {
-      float temp = value;
-      RuecklaufTempSens.setValue(temp);
-  } else if (isDp(request, dpCompFrequency)) {
-      uint8_t v = value;
-      CompFrequencySens.setValue(v);
-  } else if (isDp(request, dpRelEHeizStufe1)) {
-      eHeiz1 = static_cast<uint8_t>(value);
-  } else if (isDp(request, dpRelEHeizStufe2)) {
-      uint8_t v2 = value;
-      eHeiz2 = eHeiz1 + (2 * v2);
-      RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
-      HVACwaermepumpe.setAuxState(eHeiz2 != 0);
-  } else if (isDp(request, dpHeizkreispumpe)) {
-      uint8_t v = value;
-      heizkreispumpeSens.setState(v);
-  } else if (isDp(request, dpWWZirkPumpe)) {
-      uint8_t v = value;
-      WWzirkulationspumpeSens.setState(v);
-  } else if (isDp(request, dpRelVerdichter)) {
-      uint8_t v = value;
-      RelVerdichterSens.setState(v);
-      HVACwaermepumpe.setMode(v ? HAHVAC::HeatMode : HAHVAC::OffMode);
-  } else if (isDp(request, dpRelPrimaerquelle)) {
-      uint8_t v = value;
-      RelPrimaerquelleSens.setState(v);
-  } else if (isDp(request, dpRelSekundaerPumpe)) {
-      uint8_t v = value;
-      RelSekundaerPumpeSens.setState(v);
-  } else if (isDp(request, dpVentilHeizenWW)) {
-      uint8_t v = value;
-      ventilHeizenWWSens.setValue(v ? "Warmwasser" : "Heizen");
-  } else if (isDp(request, dpOperationMode)) {
-      uint8_t v = value;
-      const char* label = labelOrFallback(
-          v, operationModeLabels, sizeof(operationModeLabels) / sizeof(operationModeLabels[0])
-      );
-      operationmodeSens.setValue(label);
-  } else if (isDp(request, dpManualMode)) {
-      uint8_t v = value;
-      const char* label = labelOrFallback(
-          v, manualModeLabels, sizeof(manualModeLabels) / sizeof(manualModeLabels[0])
-      );
-      manualmodeSens.setValue(label);
-      selectManualMode.setState(v);
-  } else if (isDp(request, dpTempRaumSoll)) {
-      float t = value;
-      RaumSollTempSens.setState(t);
-      HVACwaermepumpe.setTargetTemperature(t);
-  } else if (isDp(request, dpTempRaumSollRed)) {
-      float t = value;
-      RaumSollRedSens.setState(t);
-  } else if (isDp(request, dpTempWWSoll)) {
-      float t = value;
-      WWtempSollSens.setState(t);
-  } else if (isDp(request, dpTempWWSoll2)) {
-      float t = value;
-      WWtempSoll2Sens.setState(t);
-  } else if (isDp(request, dpTempHystWWSoll)) {
-      float t = value;
-      HystWWsollSens.setState(t);
-  } else if (isDp(request, dpTempHKniveau)) {
-      float t = value;
-      HKniveauSens.setState(t);
-  } else if (isDp(request, dpTempHKNeigung)) {
-      float t = value;
-      HKneigungSens.setState(t);
-  }
+    CONSOLE_SERIAL.print("onVitoResponse for ");
+    CONSOLE_SERIAL.print(name);
+    CONSOLE_SERIAL.print(" (Δreq=");
+    CONSOLE_SERIAL.print(dtReqMs);
+    CONSOLE_SERIAL.println(" ms)");
+
+    if (isDp(request, dpTempOutside)) {
+        float temp = value;
+        AussenTempSens.setValue(temp);
+        logDpFloat("tmpAu (AussenTemp)", temp, lastTempOutsideMs);
+
+    } else if (isDp(request, dpWWoben)) {
+        float temp = value;
+        WWtempObenSens.setValue(temp);
+        logDpFloat("WWo (WWtempOben)", temp, lastWWobenMs);
+
+    } else if (isDp(request, dpVorlaufSoll)) {
+        float temp = value;
+        VorlaufTempSetSens.setValue(temp);
+        logDpFloat("VorlaufSoll", temp, lastVorlaufSollMs);
+
+    } else if (isDp(request, dpVorlaufIst)) {
+        float temp = value;
+        VorlaufTempSens.setValue(temp);
+        HVACwaermepumpe.setCurrentTemperature(temp);
+        logDpFloat("VorlaufIst", temp, lastVorlaufIstMs);
+
+    } else if (isDp(request, dpRuecklauf)) {
+        float temp = value;
+        RuecklaufTempSens.setValue(temp);
+        logDpFloat("Ruecklauf", temp, lastRuecklaufMs);
+
+    } else if (isDp(request, dpRelEHeizStufe1)) {
+        eHeiz1 = static_cast<uint8_t>(value);
+        logDpUint("RelEHeizStufe1 (raw)", eHeiz1, lastRelEHeiz1Ms);
+
+    } else if (isDp(request, dpRelEHeizStufe2)) {
+        uint8_t v2 = value;
+        eHeiz2 = eHeiz1 + (2 * v2);
+        RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
+        HVACwaermepumpe.setAuxState(eHeiz2 != 0);
+        logDpUint("RelEHeizStufe2 (combined)", eHeiz2, lastRelEHeiz2Ms);
+
+    } else if (isDp(request, dpHeizkreispumpe)) {
+        uint8_t v = value;
+        heizkreispumpeSens.setState(v);
+        logDpUint("Heizkreispumpe", v, lastHeizkreispumpeMs);
+
+    } else if (isDp(request, dpWWZirkPumpe)) {
+        uint8_t v = value;
+        WWzirkulationspumpeSens.setState(v);
+        logDpUint("WWZirkulationspumpe", v, lastWWZirkPumpeMs);
+
+    } else if (isDp(request, dpRelVerdichter)) {
+        uint8_t v = value;
+        RelVerdichterSens.setState(v);
+        HVACwaermepumpe.setMode(v ? HAHVAC::HeatMode : HAHVAC::OffMode);
+        logDpUint("RelVerdichter", v, lastRelVerdichterMs);
+
+    } else if (isDp(request, dpRelPrimaerquelle)) {
+        uint8_t v = value;
+        RelPrimaerquelleSens.setState(v);
+        logDpUint("RelPrimaerquelle", v, lastRelPrimaerMs);
+
+    } else if (isDp(request, dpRelSekundaerPumpe)) {
+        uint8_t v = value;
+        RelSekundaerPumpeSens.setState(v);
+        logDpUint("RelSekundaerPumpe", v, lastRelSekundaerMs);
+
+    } else if (isDp(request, dpVentilHeizenWW)) {
+        uint8_t v = value;
+        const char* text = v ? "Warmwasser" : "Heizen";
+        ventilHeizenWWSens.setValue(text);
+        logDpMode("ventilHeizenWW", v, text, lastVentilHeizenWWMs);
+
+    } else if (isDp(request, dpOperationMode)) {
+        uint8_t v = value;
+        const char* label = labelOrFallback(
+            v, operationModeLabels, sizeof(operationModeLabels) / sizeof(operationModeLabels[0])
+        );
+        operationmodeSens.setValue(label);
+        logDpMode("operationmode", v, label, lastOperationModeMs);
+
+    } else if (isDp(request, dpManualMode)) {
+        uint8_t v = value;
+        const char* label = labelOrFallback(
+            v, manualModeLabels, sizeof(manualModeLabels) / sizeof(manualModeLabels[0])
+        );
+        manualmodeSens.setValue(label);
+        selectManualMode.setState(v);
+        logDpMode("manualmode", v, label, lastManualModeMs);
+
+    } else if (isDp(request, dpTempRaumSoll)) {
+        float t = value;
+        RaumSollTempSens.setState(t);
+        HVACwaermepumpe.setTargetTemperature(t);
+        logDpFloat("RaumSollTemp", t, lastRaumSollMs);
+
+    } else if (isDp(request, dpTempRaumSollRed)) {
+        float t = value;
+        RaumSollRedSens.setState(t);
+        logDpFloat("RaumSollRed", t, lastRaumSollRedMs);
+
+    } else if (isDp(request, dpTempWWSoll)) {
+        float t = value;
+        WWtempSollSens.setState(t);
+        logDpFloat("WWtempSoll", t, lastWWSollMs);
+
+    } else if (isDp(request, dpTempWWSoll2)) {
+        float t = value;
+        WWtempSoll2Sens.setState(t);
+        logDpFloat("WWtempSoll2", t, lastWWSoll2Ms);
+
+    } else if (isDp(request, dpTempHystWWSoll)) {
+        float t = value;
+        HystWWsollSens.setState(t);
+        logDpFloat("TempHystWWSoll", t, lastHystWWSollMs);
+
+    } else if (isDp(request, dpTempHKniveau)) {
+        float t = value;
+        HKniveauSens.setState(t);
+        logDpFloat("TempHKniveau", t, lastHKniveauMs);
+
+    } else if (isDp(request, dpTempHKNeigung)) {
+        float t = value;
+        HKneigungSens.setState(t);
+        logDpFloat("TempHKNeigung", t, lastHKneigungMs);
+    }
 }
 
 

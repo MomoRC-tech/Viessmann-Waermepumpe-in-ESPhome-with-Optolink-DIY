@@ -31,7 +31,6 @@ HASensorNumber WWtempObenSens       ("WarmwasserOben",    HANumber::PrecisionP1)
 HASensorNumber VorlaufTempSetSens   ("VorlaufSoll",       HANumber::PrecisionP0);   //working
 HASensorNumber VorlaufTempSens      ("Vorlauf",           HANumber::PrecisionP0);   //working
 HASensorNumber RuecklaufTempSens    ("Ruecklauf",         HANumber::PrecisionP0);   //working
-HASensorNumber CompFrequencySens    ("CompFrequency",     HANumber::PrecisionP0);   //new
 
 HABinarySensor heizkreispumpeSens       ("Heizkreispumpe");
 HABinarySensor WWzirkulationspumpeSens  ("WWZirkulation");
@@ -86,8 +85,7 @@ void setupHomeAssistant() {
     WWtempObenSens.setIcon("mdi:bathtub");                      WWtempObenSens.setName("Warmwasser Oben");     WWtempObenSens.setUnitOfMeasurement("C");
     VorlaufTempSetSens.setIcon("mdi:thermometer-chevron-up");   VorlaufTempSetSens.setName("Vorlauf Soll");    VorlaufTempSetSens.setUnitOfMeasurement("C");  
     VorlaufTempSens.setIcon("mdi:thermometer-chevron-up");      VorlaufTempSens.setName("Vorlauf");            VorlaufTempSens.setUnitOfMeasurement("C");
-    RuecklaufTempSens.setIcon("mdi:thermometer-chevron-down");  RuecklaufTempSens.setName("Ruecklauf");        RuecklaufTempSens.setUnitOfMeasurement("C");
-    CompFrequencySens.setIcon("mdi:sine-wave");                 CompFrequencySens.setName("Compressor Frequency");        
+    RuecklaufTempSens.setIcon("mdi:thermometer-chevron-down");  RuecklaufTempSens.setName("Ruecklauf");        RuecklaufTempSens.setUnitOfMeasurement("C");      
 
     heizkreispumpeSens.setIcon("mdi:pump");                  heizkreispumpeSens.setName("Heizkreispumpe");     
     WWzirkulationspumpeSens.setIcon("mdi:pump");             WWzirkulationspumpeSens.setName("WW Zirkulation");     
