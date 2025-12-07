@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Bartels ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
+// BARTELS: ESP32-C3/ESP8266 sketch for Viessmann Optolink using VitoWiFi v3
 //
 // - ESP32-C3: uses Hardware UART0 (GPIO20 RX, GPIO21 TX) for Optolink
 // - VitoWiFi handles serial initialization internally on vitowifi.begin()
@@ -67,7 +67,7 @@ inline bool isDp(const VitoWiFi::Datapoint& req, const VitoWiFi::Datapoint& dp) 
 
 const char*     PARAM_INPUT_1 = "output";
 const char*     PARAM_INPUT_2 = "state";
-IPAddress       local_IP(192, 168, 0, 65);
+IPAddress       local_IP(192, 168, 0, 60);
 IPAddress       gateway(192, 168, 0, 1);
 IPAddress       subnet(255, 255, 255, 0);
 IPAddress       primaryDNS(192, 168, 0, 1);   //optional
@@ -114,8 +114,8 @@ static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 
 // Default group intervals tuned for stability vs. throughput
-static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 40000UL; // relays/pumps/compressor/status
-static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 64000UL; // temperatures
+static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 60000UL; // relays/pumps/compressor/status
+static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 85000UL; // temperatures
 static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 180000UL; // setpoints/hysteresis/heating curve
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
@@ -125,7 +125,7 @@ VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 // - at most one in-flight request at a time
 // - enforce a small gap after each response/error
 #ifndef VITO_RESPONSE_GAP_MS
-#define VITO_RESPONSE_GAP_MS 50UL   // ms after each response before next request
+#define VITO_RESPONSE_GAP_MS 100UL   // ms after each response before next request
 #endif
 static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 
