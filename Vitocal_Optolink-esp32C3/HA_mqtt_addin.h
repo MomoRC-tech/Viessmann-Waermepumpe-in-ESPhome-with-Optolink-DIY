@@ -133,6 +133,7 @@ void setupHomeAssistant() {
     fastPollInterval.setMin(5);
     fastPollInterval.setMax(300);
     fastPollInterval.setStep(1);
+    fastPollInterval.setRetain(true);  // keep value across broker restarts
     fastPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
             return;
@@ -149,6 +150,7 @@ void setupHomeAssistant() {
     mediumPollInterval.setMin(5);
     mediumPollInterval.setMax(600);
     mediumPollInterval.setStep(1);
+    mediumPollInterval.setRetain(true);
     mediumPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
             return;
@@ -165,6 +167,7 @@ void setupHomeAssistant() {
     slowPollInterval.setMin(5);
     slowPollInterval.setMax(1800);
     slowPollInterval.setStep(1);
+    slowPollInterval.setRetain(true);
     slowPollInterval.onCommand([](HANumeric number, HANumber* sender) {
         if (!number.isSet() || sender == nullptr) {
             return;
@@ -176,7 +179,9 @@ void setupHomeAssistant() {
     });
 
     HVACwaermepumpe.setName("Waermepumpe");                                       
-    HVACwaermepumpe.setMinTemp(10);  HVACwaermepumpe.setMaxTemp(30);    HVACwaermepumpe.setTempStep(0.5);   
+    HVACwaermepumpe.setMinTemp(10);
+    HVACwaermepumpe.setMaxTemp(30);
+    HVACwaermepumpe.setTempStep(0.5);
     HVACwaermepumpe.setModes(HAHVAC::OffMode | HAHVAC::HeatMode  | HAHVAC::CoolMode);
     HVACwaermepumpe.onTargetTemperatureCommand(onTargetTemperatureCommand);
     HVACwaermepumpe.onPowerCommand(onPowerCommand);
@@ -206,6 +211,7 @@ void setupHomeAssistant() {
     errorThresholdNumber.setMin(1);
     errorThresholdNumber.setMax(100);
     errorThresholdNumber.setStep(1);
+    errorThresholdNumber.setRetain(true);
     errorThresholdNumber.onCommand([](HANumeric value, HANumber* sender) {
         if (!value.isSet() || sender == nullptr) {
             return;
