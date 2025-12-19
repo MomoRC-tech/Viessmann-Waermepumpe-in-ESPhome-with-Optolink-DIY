@@ -51,12 +51,19 @@ jobs:
           arduino-cli lib install "PubSubClient"
           # ArduinoHA also depends on ArduinoJson
           arduino-cli lib install "ArduinoJson"
-          arduino-cli lib install "ESP Async WebServer"
-          arduino-cli lib install "AsyncTCP"
           arduino-cli lib install "ElegantOTA"
           arduino-cli lib install "WebSerial"
-          # ArduinoHA not (yet) in official index: clone repo
+
+          # ESP32-C3 (esp32 core v3.x) needs versions of AsyncTCP / ESPAsyncWebServer
+          # that are compatible with each other. The Arduino Library Manager combo
+          # can currently fail with const-qualifier errors, so we pin to ESP32Async.
           mkdir -p "$HOME/Arduino/libraries"
+          rm -rf "$HOME/Arduino/libraries/AsyncTCP"
+          rm -rf "$HOME/Arduino/libraries/ESPAsyncWebServer"
+          git clone --depth 1 https://github.com/ESP32Async/AsyncTCP.git "$HOME/Arduino/libraries/AsyncTCP"
+          git clone --depth 1 https://github.com/ESP32Async/ESPAsyncWebServer.git "$HOME/Arduino/libraries/ESPAsyncWebServer"
+
+          # ArduinoHA not (yet) in official index: clone repo
           rm -rf "$HOME/Arduino/libraries/ArduinoHA"
           git clone --depth 1 https://github.com/dawidchyrzynski/arduino-home-assistant.git "$HOME/Arduino/libraries/ArduinoHA"
           # Correct VitoWiFi repository (previously wrong: openv/vitowifi does not exist)
@@ -73,10 +80,3 @@ jobs:
           arduino-cli compile \
             --fqbn esp32:esp32:esp32c3 \
             "Vitocal_Optolink-esp32C3-Bartels/Vitocal_Optolink-esp32C3-Bartels.ino"
-
-      - name: Compile (ESP32-C3 test)
-        run: |
-          set -euo pipefail
-          arduino-cli compile \
-            --fqbn esp32:esp32:esp32c3 \
-            "Vitocal_Optolink_esp32C3_test/Vitocal_Optolink_esp32C3_test.ino"
