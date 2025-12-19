@@ -436,4 +436,12 @@ void onMQTTMessage(const char* topic, const uint8_t* payload, uint16_t length) {
 void onMQTTConnected() {
     // this method will be called when connection to MQTT broker is established
     device.publishAvailability();
+
+    // Publish initial states for HA "Number" entities.
+    // If setState() runs before MQTT is connected, ArduinoHA may not publish it later,
+    // which makes the value appear empty/unknown in Home Assistant.
+    fastPollInterval.setState((float)(vitoFastState.intervalMs / 1000UL));
+    mediumPollInterval.setState((float)(vitoMediumState.intervalMs / 1000UL));
+    slowPollInterval.setState((float)(vitoSlowState.intervalMs / 1000UL));
+    errorThresholdNumber.setState((float)vitoErrorThreshold);
 }
