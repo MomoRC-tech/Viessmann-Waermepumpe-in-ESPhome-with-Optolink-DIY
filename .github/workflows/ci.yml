@@ -49,6 +49,8 @@ jobs:
           # FastLED no longer used in sketches; omit installation
           # ArduinoHA depends on PubSubClient
           arduino-cli lib install "PubSubClient"
+          # ArduinoHA also depends on ArduinoJson
+          arduino-cli lib install "ArduinoJson"
           arduino-cli lib install "ESP Async WebServer"
           arduino-cli lib install "AsyncTCP"
           arduino-cli lib install "ElegantOTA"
