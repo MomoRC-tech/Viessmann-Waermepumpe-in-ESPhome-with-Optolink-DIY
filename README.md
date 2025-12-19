@@ -79,6 +79,45 @@ Notes:
 	- `vito_error_threshold`: configurable consecutive error threshold (default 30; range 1–100).
 - When the threshold is reached, the firmware applies a brief backoff (increases poll intervals) and reinitializes VitoWiFi.
 
+### Home Assistant entities
+
+All entities are created via MQTT discovery using the `wp_` prefix (see `Vitocal_Optolink-esp32C3/HA_mqtt_addin.h`).
+
+Note: Home Assistant will display a human-friendly name (e.g. “Aussentemperatur”), but the underlying `entity_id`/`object_id` comes from the IDs listed below (unless you rename them in HA).
+
+| Entity ID | Type | Description |
+| --- | --- | --- |
+| `wp_Aussentemperatur` | sensor | Outside temperature (°C). |
+| `wp_WarmwasserOben` | sensor | Domestic hot water temperature (top) (°C). |
+| `wp_VorlaufSoll` | sensor | Heating flow temperature setpoint (°C). |
+| `wp_Vorlauf` | sensor | Heating flow temperature actual (°C). |
+| `wp_Ruecklauf` | sensor | Heating return temperature (°C). |
+| `wp_EHeizstufe` | sensor | Electric heater stage (integer). |
+| `wp_Heizkreispumpe` | binary_sensor | Heating circuit pump running. |
+| `wp_WWZirkulation` | binary_sensor | Hot water circulation pump running. |
+| `wp_VentilHeizenWW` | sensor | Valve state “heating vs DHW” (text). |
+| `wp_Verdichter` | binary_sensor | Compressor running. |
+| `wp_Grundwasserpumpe` | binary_sensor | Primary source pump running (groundwater). |
+| `wp_Sekundaerpumpe` | binary_sensor | Secondary pump running. |
+| `wp_WPStoerung` | binary_sensor | Heat pump fault active. |
+| `wp_Waermepumpe` | climate | HVAC-like control (target temperature + mode). |
+| `wp_WarmwasserSoll` | number | DHW temperature setpoint 1 (°C). |
+| `wp_WarmwasserSoll2` | number | DHW temperature setpoint 2 (°C). |
+| `wp_Raumtemperatur` | number | Room temperature setpoint (°C). |
+| `wp_RaumtemperaturRed` | number | Reduced room temperature setpoint (°C). |
+| `wp_HystereseWWsoll` | number | DHW setpoint hysteresis (°C). |
+| `wp_NeigungHeizkennlinie` | number | Heating curve slope (0–1). |
+| `wp_NiveauHeizkennlinie` | number | Heating curve offset/level (K). |
+| `wp_Betriebsmodus` | sensor | Current operation mode (text). |
+| `wp_ManualMode` | sensor | Current manual mode (text). |
+| `wp_setManualMode` | select | Set manual mode (normal / manual / 1× DHW to temp2). |
+| `wp_fastPollInterval` | number | Fast polling interval (s). |
+| `wp_mediumPollInterval` | number | Medium polling interval (s). |
+| `wp_slowPollInterval` | number | Slow polling interval (s). |
+| `wp_vito_error_count` | sensor | VitoWiFi error counter (rolling window). |
+| `wp_vito_consecutive_errors` | sensor | Consecutive VitoWiFi errors. |
+| `wp_vito_error_threshold` | number | Error threshold before backoff/re-init (1–100). |
+
 ### Key Files
 - `Vitocal_Optolink-esp32C3/Vitocal_Optolink-esp32C3.ino`: main sketch (WiFi, VitoWiFi init, async web server, OTA/WebSerial, polling loop).
 - `Vitocal_Optolink-esp32C3/HA_mqtt_addin.h`: Home Assistant MQTT entities, callbacks, and HA-configurable polling intervals.
