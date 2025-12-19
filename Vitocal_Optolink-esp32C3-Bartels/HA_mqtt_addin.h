@@ -15,6 +15,12 @@ extern volatile uint32_t vitoErrorThreshold; // from main sketch
 // prefix to have unique IDs
 #define HA_PREFIX "wp_bartels_"   
 
+// If set to 1 (via the main .ino before including this header), the device
+// unique_id is derived from the MAC address in setupHomeAssistant().
+#ifndef HA_DEVICE_UNIQUE_ID_FROM_MAC
+    #define HA_DEVICE_UNIQUE_ID_FROM_MAC 0
+#endif
+
 //*** forward declararions ***************************************************
 void onMQTTConnected(void);
 void onMQTTMessage(const char* topic, const uint8_t* payload, uint16_t length);
@@ -80,17 +86,19 @@ HANumber errorThresholdNumber(HA_PREFIX "vito_error_threshold", HANumber::Precis
 //###########################################################################
 // setup home assistant integration##########################################
 void setupHomeAssistant() {   
-    // IMPORTANT: Ensure a stable unique_id in Home Assistant.
-    // If the device unique ID changes between firmware versions, HA will
-    // discover a *second* set of entities and append "_2" to the entity_id.
-    // Using the hardware MAC keeps it stable across re-flashes.
-    static bool uniqueIdSet = false;
-    if (!uniqueIdSet) {
-        byte mac[6];
-        WiFi.macAddress(mac);
-        device.setUniqueId(mac, sizeof(mac));
-        uniqueIdSet = true;
-    }
+    #if HA_DEVICE_UNIQUE_ID_FROM_MAC
+        // IMPORTANT: Ensure a stable unique_id in Home Assistant.
+        // If the device unique ID changes between firmware versions, HA will
+        // discover a *second* set of entities and append "_2" to the entity_id.
+        // Using the hardware MAC keeps it stable across re-flashes.
+        static bool uniqueIdSet = false;
+        if (!uniqueIdSet) {
+            byte mac[6];
+            WiFi.macAddress(mac);
+            device.setUniqueId(mac, sizeof(mac));
+            uniqueIdSet = true;
+        }
+    #endif
 
     //*** HA device ***************************************************
     device.setName(DEVICE_NAME);
@@ -99,6 +107,45 @@ void setupHomeAssistant() {
     device.setModel(DEVICE_MODEL); 
     device.enableSharedAvailability();
     device.enableLastWill();
+
+    // Force stable entity_ids in Home Assistant.
+    // HA generates entity_id primarily from MQTT discovery "object_id".
+    // Without this, HA may generate entity_ids based on the device name
+    // when entities are recreated.
+    RelEHeizStufeSens.setObjectId(HA_PREFIX "EHeizstufe");
+    AussenTempSens.setObjectId(HA_PREFIX "Aussentemperatur");
+    WWtempObenSens.setObjectId(HA_PREFIX "WarmwasserOben");
+    VorlaufTempSetSens.setObjectId(HA_PREFIX "VorlaufSoll");
+    VorlaufTempSens.setObjectId(HA_PREFIX "Vorlauf");
+    RuecklaufTempSens.setObjectId(HA_PREFIX "Ruecklauf");
+
+    heizkreispumpeSens.setObjectId(HA_PREFIX "Heizkreispumpe");
+    WWzirkulationspumpeSens.setObjectId(HA_PREFIX "WWZirkulation");
+    ventilHeizenWWSens.setObjectId(HA_PREFIX "VentilHeizenWW");
+    RelVerdichterSens.setObjectId(HA_PREFIX "Verdichter");
+    RelPrimaerquelleSens.setObjectId(HA_PREFIX "Grundwasserpumpe");
+    RelSekundaerPumpeSens.setObjectId(HA_PREFIX "Sekundaerpumpe");
+    Stoerung.setObjectId(HA_PREFIX "WPStoerung");
+    HVACwaermepumpe.setObjectId(HA_PREFIX "Waermepumpe");
+
+    WWtempSollSens.setObjectId(HA_PREFIX "WarmwasserSoll");
+    WWtempSoll2Sens.setObjectId(HA_PREFIX "WarmwasserSoll2");
+    RaumSollTempSens.setObjectId(HA_PREFIX "Raumtemperatur");
+    RaumSollRedSens.setObjectId(HA_PREFIX "RaumtemperaturRed");
+    HystWWsollSens.setObjectId(HA_PREFIX "HystereseWWsoll");
+    HKneigungSens.setObjectId(HA_PREFIX "NeigungHeizkennlinie");
+    HKniveauSens.setObjectId(HA_PREFIX "NiveauHeizkennlinie");
+    operationmodeSens.setObjectId(HA_PREFIX "Betriebsmodus");
+    manualmodeSens.setObjectId(HA_PREFIX "ManualMode");
+    selectManualMode.setObjectId(HA_PREFIX "setManualMode");
+
+    fastPollInterval.setObjectId(HA_PREFIX "fastPollInterval");
+    mediumPollInterval.setObjectId(HA_PREFIX "mediumPollInterval");
+    slowPollInterval.setObjectId(HA_PREFIX "slowPollInterval");
+
+    vitoErrorCountSens.setObjectId(HA_PREFIX "vito_error_count");
+    vitoConsecErrorSens.setObjectId(HA_PREFIX "vito_consecutive_errors");
+    errorThresholdNumber.setObjectId(HA_PREFIX "vito_error_threshold");
 
     //*** setup sensors ***********************************************
     AussenTempSens.setIcon("mdi:home-thermometer-outline");     AussenTempSens.setName("Aussentemperatur");    AussenTempSens.setUnitOfMeasurement("C");

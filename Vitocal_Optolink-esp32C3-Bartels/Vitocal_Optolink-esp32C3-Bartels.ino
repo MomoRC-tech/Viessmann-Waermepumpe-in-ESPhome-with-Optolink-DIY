@@ -92,8 +92,24 @@ WiFiMulti WiFiMulti;
 #define MQTT_DATAPREFIX         "Technik"
 #define MQTT_DISCOVERYPREFIX    "homeassistant"
 
+// Home Assistant (ArduinoHA) device unique_id
+// - If HA_DEVICE_UNIQUE_ID_FROM_MAC is 0 (default), a fixed string is used.
+// - If HA_DEVICE_UNIQUE_ID_FROM_MAC is 1, the unique_id is derived from the MAC
+//   inside setupHomeAssistant() (see HA_mqtt_addin.h).
+// IMPORTANT: Keep the unique_id stable to avoid duplicated entities in HA.
+#ifndef HA_DEVICE_UNIQUE_ID_FROM_MAC
+  #define HA_DEVICE_UNIQUE_ID_FROM_MAC 0
+#endif
+#ifndef HA_DEVICE_UNIQUE_ID
+  #define HA_DEVICE_UNIQUE_ID "wp_bartels"
+#endif
+
 WiFiClient client;
+#if HA_DEVICE_UNIQUE_ID_FROM_MAC
 HADevice device;
+#else
+HADevice device(HA_DEVICE_UNIQUE_ID);
+#endif
 HAMqtt mqtt(client, device, 30);
 
 
