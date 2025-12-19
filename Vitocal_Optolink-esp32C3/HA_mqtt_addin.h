@@ -114,29 +114,29 @@ void setupHomeAssistant() {
     // when entities are recreated.
     RelEHeizStufeSens.setObjectId(HA_PREFIX "EHeizstufe");
     AussenTempSens.setObjectId(HA_PREFIX "Aussentemperatur");
-    WWtempObenSens.setObjectId(HA_PREFIX "WarmwasserOben");
-    VorlaufTempSetSens.setObjectId(HA_PREFIX "VorlaufSoll");
+    WWtempObenSens.setObjectId(HA_PREFIX "Warmwasser_Oben");
+    VorlaufTempSetSens.setObjectId(HA_PREFIX "Vorlauf_Soll");
     VorlaufTempSens.setObjectId(HA_PREFIX "Vorlauf");
     RuecklaufTempSens.setObjectId(HA_PREFIX "Ruecklauf");
 
     heizkreispumpeSens.setObjectId(HA_PREFIX "Heizkreispumpe");
-    WWzirkulationspumpeSens.setObjectId(HA_PREFIX "WWZirkulation");
-    ventilHeizenWWSens.setObjectId(HA_PREFIX "VentilHeizenWW");
+    WWzirkulationspumpeSens.setObjectId(HA_PREFIX "WW_Zirkulation");
+    ventilHeizenWWSens.setObjectId(HA_PREFIX "ventil_heizen_ww");
     RelVerdichterSens.setObjectId(HA_PREFIX "Verdichter");
     RelPrimaerquelleSens.setObjectId(HA_PREFIX "Grundwasserpumpe");
     RelSekundaerPumpeSens.setObjectId(HA_PREFIX "Sekundaerpumpe");
-    Stoerung.setObjectId(HA_PREFIX "WPStoerung");
+    Stoerung.setObjectId(HA_PREFIX "Stoerung");
     HVACwaermepumpe.setObjectId(HA_PREFIX "Waermepumpe");
 
-    WWtempSollSens.setObjectId(HA_PREFIX "WarmwasserSoll");
-    WWtempSoll2Sens.setObjectId(HA_PREFIX "WarmwasserSoll2");
+    WWtempSollSens.setObjectId(HA_PREFIX "Warmwasser_Soll");
+    WWtempSoll2Sens.setObjectId(HA_PREFIX "Warmwasser_Soll2");
     RaumSollTempSens.setObjectId(HA_PREFIX "Raumtemperatur");
-    RaumSollRedSens.setObjectId(HA_PREFIX "RaumtemperaturRed");
-    HystWWsollSens.setObjectId(HA_PREFIX "HystereseWWsoll");
+    RaumSollRedSens.setObjectId(HA_PREFIX "Raumtemperatur_Red_soll");
+    HystWWsollSens.setObjectId(HA_PREFIX "Hysterese_WW_soll");
     HKneigungSens.setObjectId(HA_PREFIX "NeigungHeizkennlinie");
     HKniveauSens.setObjectId(HA_PREFIX "NiveauHeizkennlinie");
-    operationmodeSens.setObjectId(HA_PREFIX "Betriebsmodus");
-    manualmodeSens.setObjectId(HA_PREFIX "ManualMode");
+    operationmodeSens.setObjectId(HA_PREFIX "modus");
+    manualmodeSens.setObjectId(HA_PREFIX "man_modus");
     selectManualMode.setObjectId(HA_PREFIX "setManualMode");
 
     fastPollInterval.setObjectId(HA_PREFIX "fastPollInterval");
