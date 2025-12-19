@@ -1,5 +1,4 @@
 # Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY
-[![Release](https://github.com/MomoRC-tech/Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY/actions/workflows/release.yml/badge.svg)](https://github.com/MomoRC-tech/Viessmann-Waermepumpe-in-ESPhome-with-Optolink-DIY/actions/workflows/release.yml)
 Connect a Viessmann heat pump via DIY Optolink to Home Assistant (MQTT) using VitoWiFi v3, paced grouped polling, WebSerial, and ElegantOTA.
 
 This README documents the main ESP32‑C3 Arduino sketch in `Vitocal_Optolink-esp32C3/`.
