@@ -47,6 +47,8 @@ jobs:
           set -euo pipefail
           arduino-cli lib update-index
           # FastLED no longer used in sketches; omit installation
+          # ArduinoHA depends on PubSubClient
+          arduino-cli lib install "PubSubClient"
           arduino-cli lib install "ESP Async WebServer"
           arduino-cli lib install "AsyncTCP"
           arduino-cli lib install "ElegantOTA"
