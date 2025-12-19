@@ -30,9 +30,9 @@ The schematic largely follows the openv ESP8266 instructions and typical Optolin
 
 ### Photos
 
-![ESP32‑C3](docs/ESP32C3.jpg)
-![Device installed](docs/device_installed.jpg)
-![Final device](docs/final%20device.jpg)
+<a href="docs/ESP32C3.jpg"><img src="docs/ESP32C3.jpg" alt="ESP32‑C3" width="320"></a>
+<a href="docs/device_installed.jpg"><img src="docs/device_installed.jpg" alt="Device installed" width="320"></a>
+<a href="docs/final%20device.jpg"><img src="docs/final%20device.jpg" alt="Final device" width="320"></a>
 
 ### Software and Libraries
 
