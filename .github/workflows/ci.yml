@@ -76,9 +76,9 @@ jobs:
           set -euo pipefail
           arduino-cli compile \
             --fqbn esp32:esp32:esp32c3 \
-            --build-property build.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1" \
+            --build-property build.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1 -DESP32=1" \
             "Vitocal_Optolink-esp32C3/Vitocal_Optolink-esp32C3.ino"
           arduino-cli compile \
             --fqbn esp32:esp32:esp32c3 \
-            --build-property build.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1" \
+            --build-property build.extra_flags="-DELEGANTOTA_USE_ASYNC_WEBSERVER=1 -DESP32=1" \
             "Vitocal_Optolink-esp32C3-Bartels/Vitocal_Optolink-esp32C3-Bartels.ino"
