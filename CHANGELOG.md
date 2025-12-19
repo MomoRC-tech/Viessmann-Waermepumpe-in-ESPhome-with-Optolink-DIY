@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented here.
 
+## [v0.3.1] - 2025-12-19
+- Home Assistant: publish initial states for polling interval Number entities on MQTT connect (fixes empty/unknown values)
+- Also publishes error threshold Number state on connect
+
+## [v0.3.0] - 2025-12-19
+- Home Assistant: update HA entity config
+
 ## [v0.2.9] - 2025-12-04
 - ESP32-C3 test: increase deferred read/retry interval to 1s for stability
 - Tag triggers CI compile for both ESP8266 main and ESP32-C3 test
