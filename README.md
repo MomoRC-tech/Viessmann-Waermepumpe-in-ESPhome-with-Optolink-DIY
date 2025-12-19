@@ -28,6 +28,12 @@ Notes:
 
 The schematic largely follows the openv ESP8266 instructions and typical Optolink transceiver wiring. Ensure the IR transceiver is aligned properly on the Viessmann service port.
 
+### Photos
+
+![ESP32‑C3](docs/ESP32C3.jpg)
+![Device installed](docs/device_installed.jpg)
+![Final device](docs/final%20device.jpg)
+
 ### Software and Libraries
 
 - **Platform:** Arduino (ESP32 core)
