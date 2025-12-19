@@ -93,7 +93,7 @@ WiFiMulti WiFiMulti;
 #define MQTT_DISCOVERYPREFIX    "homeassistant"
 
 WiFiClient client;
-HADevice device("WP");
+HADevice device;
 HAMqtt mqtt(client, device, 30);
 
 

@@ -118,6 +118,136 @@ Note: Home Assistant will display a human-friendly name (e.g. “Aussentemperatu
 | `wp_vito_consecutive_errors` | sensor | Consecutive VitoWiFi errors. |
 | `wp_vito_error_threshold` | number | Error threshold before backoff/re-init (1–100). |
 
+### Heating curve (Heizkennlinie)
+
+For the Vitocal 343‑G with Vitotronic 200 WO1C, the service manual diagrams show a heating curve that can be modeled as a line around a fixed point:
+
+- At outdoor temperature `T_out = 20 °C`, the curve meets `T_flow = 20 °C` (for the default “normal room setpoint = 20 °C”, “niveau = 0”).
+- `wp_NeigungHeizkennlinie` changes the slope (steepness).
+- `wp_NiveauHeizkennlinie` shifts the curve up/down (parallel shift).
+- The normal room temperature setpoint shifts the curve along the “room setpoint” axis.
+
+A practical formula that matches those properties is:
+
+```
+T_flow_set = T_room_set + niveau + neigung * (T_room_set - T_out)
+```
+
+Where:
+- `T_out` = `sensor.wp_aussentemperatur` (°C)
+- `T_room_set` = `number.wp_raumtemperatur_soll` (°C) (or `number.wp_raumtemperatur_red_soll` for reduced)
+- `neigung` = `number.wp_neigung_heizkennlinie` (dimensionless)
+- `niveau` = `number.wp_niveau_heizkennlinie` (K; numerically same as °C offset)
+
+#### Home Assistant: calculated flow setpoint
+
+Add a calculated sensor in Home Assistant to validate/visualize the curve against the real setpoint (`sensor.wp_vorlaufsoll`). Example for `configuration.yaml`:
+
+```yaml
+template:
+  - sensor:
+      - name: "WP Heizkennlinie VorlaufSoll (berechnet)"
+        unique_id: wp_heizkennlinie_vorlaufsoll_berechnet
+        unit_of_measurement: "°C"
+        state: >
+          {% set t_out = states('sensor.wp_aussentemperatur') | float(none) %}
+          {% set t_room = states('number.wp_raumtemperatur_soll') | float(none) %}
+          {% set slope = states('number.wp_neigung_heizkennlinie') | float(none) %}
+          {% set niveau = states('number.wp_niveau_heizkennlinie') | float(none) %}
+          {% if t_out is none or t_room is none or slope is none or niveau is none %}
+            unknown
+          {% else %}
+            {{ (t_room + niveau + slope * (t_room - t_out)) | round(1) }}
+          {% endif %}
+
+      - name: "WP VorlaufSoll Abweichung (Ist - berechnet)"
+        unique_id: wp_vorlaufsoll_abweichung
+        unit_of_measurement: "°C"
+        state: >
+          {% set actual = states('sensor.wp_vorlaufsoll') | float(none) %}
+          {% set calc = states('sensor.wp_heizkennlinie_vorlaufsoll_berechnet') | float(none) %}
+          {% if actual is none or calc is none %}
+            unknown
+          {% else %}
+            {{ (actual - calc) | round(1) }}
+          {% endif %}
+```
+
+#### Home Assistant: curve chart (optional)
+
+If you want to plot the curve as a graph in a dashboard, a convenient option is the custom Lovelace `apexcharts-card`.
+
+Example Lovelace card (add via Dashboard → Edit → Manual card). This plots the calculated curve and overlays the current operating point:
+
+```yaml
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Heizkennlinie (Vorlauf vs. Außentemperatur)
+graph_span: 1d
+span:
+  start: day
+apex_config:
+  xaxis:
+    type: numeric
+    title:
+      text: Außentemperatur (°C)
+    min: -30
+    max: 20
+  markers:
+    # markers.size can be an array (per-series). We hide markers on the curve,
+    # but show them for the 2 single-point “Aktuell …” series.
+    size: [0, 6, 6]
+  yaxis:
+    title:
+      text: Vorlauf (°C)
+series:
+  - name: Kennlinie (berechnet)
+    type: line
+    entity: sensor.wp_aussentemperatur
+    stroke_width: 2
+    show:
+      legend_value: false
+    data_generator: |
+      // Note: apexcharts-card v2.2.x requires `entity` in each series.
+      // We use it only as an update trigger; the actual points come from this generator.
+      const tRoom = parseFloat(hass.states['number.wp_raumtemperatur_soll']?.state);
+      const slope = parseFloat(hass.states['number.wp_neigung_heizkennlinie']?.state);
+      const niveau = parseFloat(hass.states['number.wp_niveau_heizkennlinie']?.state);
+      if ([tRoom, slope, niveau].some(v => Number.isNaN(v))) return [];
+
+      const points = [];
+      for (let tOut = -30; tOut <= 20; tOut += 1) {
+        const tFlow = tRoom + niveau + slope * (tRoom - tOut);
+        points.push([tOut, Math.round(tFlow * 10) / 10]);
+      }
+      return points;
+
+  - name: Aktuell (VorlaufSoll)
+    type: line
+    entity: sensor.wp_vorlaufsoll
+    stroke_width: 0
+    show:
+      legend_value: false
+    data_generator: |
+      const tOut = parseFloat(hass.states['sensor.wp_aussentemperatur']?.state);
+      const tFlow = parseFloat(hass.states['sensor.wp_vorlaufsoll']?.state);
+      if ([tOut, tFlow].some(v => Number.isNaN(v))) return [];
+      return [[tOut, tFlow]];
+
+  - name: Aktuell (berechnet)
+    type: line
+    entity: sensor.wp_heizkennlinie_vorlaufsoll_berechnet
+    stroke_width: 0
+    show:
+      legend_value: false
+    data_generator: |
+      const tOut = parseFloat(hass.states['sensor.wp_aussentemperatur']?.state);
+      const tFlow = parseFloat(hass.states['sensor.wp_heizkennlinie_vorlaufsoll_berechnet']?.state);
+      if ([tOut, tFlow].some(v => Number.isNaN(v))) return [];
+      return [[tOut, tFlow]];
+```
+
 ### Key Files
 - `Vitocal_Optolink-esp32C3/Vitocal_Optolink-esp32C3.ino`: main sketch (WiFi, VitoWiFi init, async web server, OTA/WebSerial, polling loop).
 - `Vitocal_Optolink-esp32C3/HA_mqtt_addin.h`: Home Assistant MQTT entities, callbacks, and HA-configurable polling intervals.

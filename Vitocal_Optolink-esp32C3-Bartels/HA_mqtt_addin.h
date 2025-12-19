@@ -3,6 +3,11 @@
 #pragma once
 
 #include <ArduinoHA.h>
+#if defined(ESP8266)
+    #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+    #include <WiFi.h>
+#endif
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
 extern volatile uint32_t vitoErrorThreshold; // from main sketch
@@ -75,6 +80,18 @@ HANumber errorThresholdNumber(HA_PREFIX "vito_error_threshold", HANumber::Precis
 //###########################################################################
 // setup home assistant integration##########################################
 void setupHomeAssistant() {   
+    // IMPORTANT: Ensure a stable unique_id in Home Assistant.
+    // If the device unique ID changes between firmware versions, HA will
+    // discover a *second* set of entities and append "_2" to the entity_id.
+    // Using the hardware MAC keeps it stable across re-flashes.
+    static bool uniqueIdSet = false;
+    if (!uniqueIdSet) {
+        byte mac[6];
+        WiFi.macAddress(mac);
+        device.setUniqueId(mac, sizeof(mac));
+        uniqueIdSet = true;
+    }
+
     //*** HA device ***************************************************
     device.setName(DEVICE_NAME);
     device.setSoftwareVersion(DEVICE_SWVERSION);
