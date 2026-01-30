@@ -599,10 +599,11 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
     } else if (isDp(request, dpRelEHeizStufe2)) {
         uint8_t v2 = value;
+        logDpUint("RelEHeizStufe2 (raw)", v2, lastRelEHeiz2Ms);
         eHeiz2 = eHeiz1 + (2 * v2);
         RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
         HVACwaermepumpe.setAuxState(eHeiz2 != 0);
-        logDpUint("RelEHeizStufe2 (combined)", eHeiz2, lastRelEHeiz2Ms);
+        logDpUint("RelEHeizStufe2 (combined: eHeiz1 + (2 * eHeiz2))", eHeiz2, lastRelEHeiz2Ms);
 
     } else if (isDp(request, dpHeizkreispumpe)) {
         uint8_t v = value;
