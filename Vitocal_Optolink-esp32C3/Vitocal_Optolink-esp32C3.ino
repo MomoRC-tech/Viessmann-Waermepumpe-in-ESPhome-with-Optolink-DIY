@@ -551,7 +551,7 @@ void loop() {
   }
 
   // Low priority: OTA and serial diagnostics
-  ElegantOTA.loop();
+  // Note: ElegantOTA.loop() not needed with AsyncWebServer (v3.x uses event handlers)
   WebSerial.loop();
 
   // Periodic maintenance: WiFi connectivity check (5 minutes)
@@ -793,7 +793,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
     vitoConsecutiveErrors = 0;
   }
 
-  // EVENT-DRIVEN: Schedule next read immediately after this error
+  // EVENT: Schedule next read immediately after this error
   scheduleNextRead();
 }
 
