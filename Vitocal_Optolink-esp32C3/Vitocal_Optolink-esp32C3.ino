@@ -536,6 +536,13 @@ void loop() {
   // This loop just keeps the VitoWiFi state machine ticking and dispatches callbacks.
   // No polling needed here; write priority is handled in scheduleNextRead().
   
+  // Critical: Process VitoWiFi responses first (callbacks update sensor values)
+  vitoWIFI.loop();
+  
+  // Critical: Publish sensor updates immediately after VitoWiFi processes them
+  mqtt.loop();
+  
+  // Periodic: Publish status/availability with accurate current state
   EVERY_N_SECONDS(8) {
     count++;
     toggle = !toggle;
@@ -543,16 +550,16 @@ void loop() {
     CONSOLE_SERIAL.println("VitoWiFi read cycle running");
   }
 
-  // Essential: Keep the library state machine running
-  vitoWIFI.loop();
-  mqtt.loop();
+  // Low priority: OTA and serial diagnostics
   ElegantOTA.loop();
   WebSerial.loop();
 
+  // Periodic maintenance: WiFi connectivity check (5 minutes)
   EVERY_N_SECONDS(300) {
     myCheckWIFIcyclic();
   }
 
+  // Optional: Runtime statistics printing (disabled)
   EVERY_N_SECONDS(4) {
     // myPrintRuntime();
   }
