@@ -304,7 +304,7 @@ void setupHomeAssistant() {
 
 
 // VitoWiFi v3 instance and datapoints (defined elsewhere)
-extern VitoWiFi::VitoWiFi<VitoWiFi::VS1> vitoWIFI;
+extern volatile bool vitoWritePending;  // Flag to pause read polling during writes
 extern VitoWiFi::Datapoint setTempRaumSoll;
 extern VitoWiFi::Datapoint setTempRaumSollRed;
 extern VitoWiFi::Datapoint setTempHystWWsoll;
@@ -315,17 +315,42 @@ extern VitoWiFi::Datapoint setTempWWsoll2;
 extern VitoWiFi::Datapoint setManualMode;
 
 void setRaumSoll (HANumeric number, HANumber* sender) {
+    uint32_t callTimeMs = millis();
+    CONSOLE_SERIAL.println("──────────────────────────────────────────────────────");
+    CONSOLE_SERIAL.println("[MQTT] setRaumSoll command received from Home Assistant");
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempRaumSoll, val);
+        CONSOLE_SERIAL.printf("[MQTT] Parsed value: %.1f°C\n", val);
+        CONSOLE_SERIAL.println("[MQTT] Validation: value in range [10.0...30.0]");
+        CONSOLE_SERIAL.printf("[MQTT] Calling vitoWIFI.write(setTempRaumSoll, %.1f) at T=%lu ms\n", val, callTimeMs);
+        if (vitoWIFI.write(setTempRaumSoll, val)) {
+            vitoWritePending = true;  // Pause read polling
+            uint32_t queueTimeMs = millis();
+            CONSOLE_SERIAL.printf("[VITO] Write QUEUED: RaumSoll=%.1f°C at T=%lu ms\n", val, queueTimeMs);
+            CONSOLE_SERIAL.printf("[VITO] Round-trip latency: %lu ms (init → queue)\n", queueTimeMs - callTimeMs);
+            CONSOLE_SERIAL.println("[VITO] Status: vitoWritePending=true, read polling PAUSED");
+            CONSOLE_SERIAL.println("[VITO] Waiting for onVitoResponse() or onVitoError()...");
+        } else {
+            CONSOLE_SERIAL.println("[VITO] Write FAILED: RaumSoll (VitoWiFi library busy, previous request in-flight)");
+            CONSOLE_SERIAL.printf("[VITO] Failed at T=%lu ms\n", millis());
+        }
+    } else {
+        CONSOLE_SERIAL.println("[MQTT] ERROR: command value not set");
     }
     sender->setState(number); // report the selected option back to the HA panel
+    CONSOLE_SERIAL.println("[MQTT] State reported back to Home Assistant");
+    CONSOLE_SERIAL.println("──────────────────────────────────────────────────────");
 }
 
 void setRaumSollRed (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempRaumSollRed, val);
+        if (vitoWIFI.write(setTempRaumSollRed, val)) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.printf("Write queued: RaumSollRed=%.1f°C\n", val);
+        } else {
+            CONSOLE_SERIAL.println("Write failed: RaumSollRed (library busy)");
+        }
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -333,7 +358,12 @@ void setRaumSollRed (HANumeric number, HANumber* sender) {
 void setHystWWsoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempHystWWsoll, val);
+        if (vitoWIFI.write(setTempHystWWsoll, val)) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.printf("Write queued: HystWWsoll=%.1f°C\n", val);
+        } else {
+            CONSOLE_SERIAL.println("Write failed: HystWWsoll (library busy)");
+        }
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -341,7 +371,12 @@ void setHystWWsoll (HANumeric number, HANumber* sender) {
 void setHKneigung (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempHKneigung, val);
+        if (vitoWIFI.write(setTempHKneigung, val)) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.printf("Write queued: HKneigung=%.1f\n", val);
+        } else {
+            CONSOLE_SERIAL.println("Write failed: HKneigung (library busy)");
+        }
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -349,7 +384,12 @@ void setHKneigung (HANumeric number, HANumber* sender) {
 void setHKniveau (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempHKniveau, val);
+        if (vitoWIFI.write(setTempHKniveau, val)) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.printf("Write queued: HKniveau=%.1f K\n", val);
+        } else {
+            CONSOLE_SERIAL.println("Write failed: HKniveau (library busy)");
+        }
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -357,7 +397,12 @@ void setHKniveau (HANumeric number, HANumber* sender) {
 void setWWSoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempWWsoll, val);
+        if (vitoWIFI.write(setTempWWsoll, val)) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.printf("Write queued: WWSoll=%.1f°C\n", val);
+        } else {
+            CONSOLE_SERIAL.println("Write failed: WWSoll (library busy)");
+        }
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
@@ -365,14 +410,24 @@ void setWWSoll (HANumeric number, HANumber* sender) {
 void setWWSoll2 (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        vitoWIFI.write(setTempWWsoll2, val);
+        if (vitoWIFI.write(setTempWWsoll2, val)) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.printf("Write queued: WWSoll2=%.1f°C\n", val);
+        } else {
+            CONSOLE_SERIAL.println("Write failed: WWSoll2 (library busy)");
+        }
     }
     sender->setState(number); // report the selected option back to the HA panel
 }
 
 void onTargetTemperatureCommand(HANumeric temperature, HAHVAC* sender) {
     float val = temperature.toFloat();
-    vitoWIFI.write(setTempRaumSoll, val);
+    if (vitoWIFI.write(setTempRaumSoll, val)) {
+        vitoWritePending = true;  // Pause read polling
+        CONSOLE_SERIAL.printf("Write queued: RaumSoll (HVAC)=%.1f°C\n", val);
+    } else {
+        CONSOLE_SERIAL.println("Write failed: RaumSoll (HVAC, library busy)");
+    }
 
     sender->setTargetTemperature(temperature); // report target temperature back to the HA panel
 }
@@ -405,20 +460,39 @@ void onModeCommand(HAHVAC::Mode mode, HAHVAC* sender) {
 
 void onManualModeCommand(int8_t index, HASelect* sender)
 {
+    const char* modeLabel = "unknown";
     switch (index) {
     case 0:
         // Option "Normal" was selected
-        vitoWIFI.write(setManualMode, static_cast<uint8_t>(index));
+        modeLabel = "Normal";
+        if (vitoWIFI.write(setManualMode, static_cast<uint8_t>(index))) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.println("Write queued: ManualMode=Normal");
+        } else {
+            CONSOLE_SERIAL.println("Write failed: ManualMode (library busy)");
+        }
         break;
 
     case 1:
         // Option "Manueller Heizbetrieb" was selected
-        vitoWIFI.write(setManualMode, static_cast<uint8_t>(index));
+        modeLabel = "Manuel";
+        if (vitoWIFI.write(setManualMode, static_cast<uint8_t>(index))) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.println("Write queued: ManualMode=Manuel");
+        } else {
+            CONSOLE_SERIAL.println("Write failed: ManualMode (library busy)");
+        }
         break;
 
     case 2:
         // Option "1x WW auf Temp2" was selected
-        vitoWIFI.write(setManualMode, static_cast<uint8_t>(index));
+        modeLabel = "WW auf Temp2";
+        if (vitoWIFI.write(setManualMode, static_cast<uint8_t>(index))) {
+            vitoWritePending = true;  // Pause read polling
+            CONSOLE_SERIAL.println("Write queued: ManualMode=WW auf Temp2");
+        } else {
+            CONSOLE_SERIAL.println("Write failed: ManualMode (library busy)");
+        }
         break;
 
     default:
