@@ -6,6 +6,17 @@
 // - ElegantOTA provides web-based firmware updates (Async server)
 // - Polling is grouped and paced via a configurable minimum request gap
 // ---------------------------------------------------------------------------
+
+// ElegantOTA configuration: MUST be defined before including ESPAsyncWebServer
+#ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
+  #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
+#endif
+#if ELEGANTOTA_USE_ASYNC_WEBSERVER
+  #pragma message("ElegantOTA async mode enabled")
+#else
+  #pragma message("ElegantOTA async mode DISABLED")
+#endif
+
 // General includes
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
@@ -21,17 +32,6 @@ static uint32_t rtMaxUs     = 0;
 static uint64_t rtSumUs     = 0;
 static uint32_t rtSamples   = 0;
 static uint32_t rtPrevUs    = 0;
-
-
-// ElegantOTA configuration: use AsyncWebServer backend
-#ifndef ELEGANTOTA_USE_ASYNC_WEBSERVER
-  #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
-#endif
-#if ELEGANTOTA_USE_ASYNC_WEBSERVER
-  #pragma message("ElegantOTA async mode enabled")
-#else
-  #pragma message("ElegantOTA async mode DISABLED")
-#endif
 
 // Core libraries and project headers
 #include <ElegantOTA.h>
