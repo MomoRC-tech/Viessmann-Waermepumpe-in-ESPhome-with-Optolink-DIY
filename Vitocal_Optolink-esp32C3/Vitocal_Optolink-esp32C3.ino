@@ -478,7 +478,7 @@ void setup() {
   });
 
   // start ota, webserial, server
-  ElegantOTA.begin(&server);
+  ElegantOTA.begin(&server, "", "");  // ElegantOTA v3.x requires username/password (empty = no auth)
   WebSerial.begin(&server);
   server.begin();
   CONSOLE_SERIAL.println("Web server started; ElegantOTA ans WebSerial ready");
