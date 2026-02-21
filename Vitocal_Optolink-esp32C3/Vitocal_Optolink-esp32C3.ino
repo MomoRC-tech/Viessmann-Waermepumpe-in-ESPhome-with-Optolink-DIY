@@ -146,7 +146,7 @@ VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 
 static bool     vitoBusy           = false; // true while we wait for a response
-static bool     vitoWritePending   = false; // true when a write has been queued (gives writes priority)
+volatile bool   vitoWritePending   = false; // true when a write has been queued (gives writes priority)
 static uint32_t vitoLastResponseMs = 0;     // millis() when last response/error arrived
 
 // labels
