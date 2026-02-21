@@ -23,6 +23,7 @@ extern volatile uint32_t vitoErrorThreshold; // from main sketch
 
 //*** forward declararions ***************************************************
 void onMQTTConnected(void);
+void onMQTTDisconnected(void);
 void onMQTTMessage(const char* topic, const uint8_t* payload, uint16_t length);
 void setRaumSoll (HANumeric number, HANumber* sender);
 void setRaumSollRed (HANumeric number, HANumber* sender);
@@ -265,9 +266,11 @@ void setupHomeAssistant() {
     //*** setup MQTT ***********************************************
     //mqtt.onMessage(onMQTTMessage);
     mqtt.onConnected(onMQTTConnected);
+    mqtt.onDisconnected(onMQTTDisconnected);
     mqtt.setDataPrefix(MQTT_DATAPREFIX);
     mqtt.setDiscoveryPrefix(MQTT_DISCOVERYPREFIX);
-    mqtt.begin(BROKER_ADDR, BROKER_PORT, BROKER_USERNAME, BROKER_PASSWORD);
+    bool mqttBeginOk = mqtt.begin(BROKER_ADDR, BROKER_PORT, BROKER_USERNAME, BROKER_PASSWORD);
+    CONSOLE_SERIAL.printf("[MQTT] begin(%s:%u) -> %s\n", BROKER_ADDR, (unsigned)BROKER_PORT, mqttBeginOk ? "ok" : "failed");
 
     // publish default polling intervals so HA sees initial state (seconds)
     fastPollInterval.setState((float)(vitoFastState.intervalMs / 1000UL));
@@ -305,6 +308,13 @@ void setupHomeAssistant() {
 
 // VitoWiFi v3 instance and datapoints (defined elsewhere)
 extern volatile bool vitoWritePending;  // Flag to pause read polling during writes
+extern volatile bool pendingWriteActive;
+extern volatile bool pendingWriteIsU8;
+extern VitoWiFi::Datapoint* pendingWriteDp;
+extern float pendingWriteFloatValue;
+extern uint8_t pendingWriteU8Value;
+extern uint32_t pendingWriteNextTryMs;
+extern const char* pendingWriteLabel;
 extern VitoWiFi::Datapoint setTempRaumSoll;
 extern VitoWiFi::Datapoint setTempRaumSollRed;
 extern VitoWiFi::Datapoint setTempHystWWsoll;
@@ -313,6 +323,44 @@ extern VitoWiFi::Datapoint setTempHKniveau;
 extern VitoWiFi::Datapoint setTempWWsoll;
 extern VitoWiFi::Datapoint setTempWWsoll2;
 extern VitoWiFi::Datapoint setManualMode;
+
+static bool queueOrWriteFloat(VitoWiFi::Datapoint& dp, float value, const char* label) {
+    if (vitoWIFI.write(dp, value)) {
+        vitoWritePending = true;
+        pendingWriteActive = false;
+        pendingWriteDp = nullptr;
+        return true;
+    }
+
+    pendingWriteDp = &dp;
+    pendingWriteIsU8 = false;
+    pendingWriteFloatValue = value;
+    pendingWriteLabel = label;
+    pendingWriteActive = true;
+    pendingWriteNextTryMs = millis() + 100UL;
+    vitoWritePending = true;
+    CONSOLE_SERIAL.printf("[VITO] Deferred retry armed: %s\n", label);
+    return false;
+}
+
+static bool queueOrWriteU8(VitoWiFi::Datapoint& dp, uint8_t value, const char* label) {
+    if (vitoWIFI.write(dp, value)) {
+        vitoWritePending = true;
+        pendingWriteActive = false;
+        pendingWriteDp = nullptr;
+        return true;
+    }
+
+    pendingWriteDp = &dp;
+    pendingWriteIsU8 = true;
+    pendingWriteU8Value = value;
+    pendingWriteLabel = label;
+    pendingWriteActive = true;
+    pendingWriteNextTryMs = millis() + 100UL;
+    vitoWritePending = true;
+    CONSOLE_SERIAL.printf("[VITO] Deferred retry armed: %s\n", label);
+    return false;
+}
 
 void setRaumSoll (HANumeric number, HANumber* sender) {
     uint32_t callTimeMs = millis();
@@ -323,16 +371,14 @@ void setRaumSoll (HANumeric number, HANumber* sender) {
         CONSOLE_SERIAL.printf("[MQTT] Parsed value: %.1f°C\n", val);
         CONSOLE_SERIAL.println("[MQTT] Validation: value in range [10.0...30.0]");
         CONSOLE_SERIAL.printf("[MQTT] Calling vitoWIFI.write(setTempRaumSoll, %.1f) at T=%lu ms\n", val, callTimeMs);
-        if (vitoWIFI.write(setTempRaumSoll, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempRaumSoll, val, "RaumSoll")) {
             uint32_t queueTimeMs = millis();
             CONSOLE_SERIAL.printf("[VITO] Write QUEUED: RaumSoll=%.1f°C at T=%lu ms\n", val, queueTimeMs);
             CONSOLE_SERIAL.printf("[VITO] Round-trip latency: %lu ms (init → queue)\n", queueTimeMs - callTimeMs);
             CONSOLE_SERIAL.println("[VITO] Status: vitoWritePending=true, read polling PAUSED");
             CONSOLE_SERIAL.println("[VITO] Waiting for onVitoResponse() or onVitoError()...");
         } else {
-            CONSOLE_SERIAL.println("[VITO] Write FAILED: RaumSoll (VitoWiFi library busy, previous request in-flight)");
-            CONSOLE_SERIAL.printf("[VITO] Failed at T=%lu ms\n", millis());
+            CONSOLE_SERIAL.println("[VITO] Write deferred: RaumSoll (library busy, will retry)");
         }
     } else {
         CONSOLE_SERIAL.println("[MQTT] ERROR: command value not set");
@@ -345,11 +391,10 @@ void setRaumSoll (HANumeric number, HANumber* sender) {
 void setRaumSollRed (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        if (vitoWIFI.write(setTempRaumSollRed, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempRaumSollRed, val, "RaumSollRed")) {
             CONSOLE_SERIAL.printf("Write queued: RaumSollRed=%.1f°C\n", val);
         } else {
-            CONSOLE_SERIAL.println("Write failed: RaumSollRed (library busy)");
+            CONSOLE_SERIAL.println("Write deferred: RaumSollRed (library busy)");
         }
     }
     sender->setState(number); // report the selected option back to the HA panel
@@ -358,11 +403,10 @@ void setRaumSollRed (HANumeric number, HANumber* sender) {
 void setHystWWsoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        if (vitoWIFI.write(setTempHystWWsoll, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempHystWWsoll, val, "HystWWsoll")) {
             CONSOLE_SERIAL.printf("Write queued: HystWWsoll=%.1f°C\n", val);
         } else {
-            CONSOLE_SERIAL.println("Write failed: HystWWsoll (library busy)");
+            CONSOLE_SERIAL.println("Write deferred: HystWWsoll (library busy)");
         }
     }
     sender->setState(number); // report the selected option back to the HA panel
@@ -371,11 +415,10 @@ void setHystWWsoll (HANumeric number, HANumber* sender) {
 void setHKneigung (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        if (vitoWIFI.write(setTempHKneigung, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempHKneigung, val, "HKneigung")) {
             CONSOLE_SERIAL.printf("Write queued: HKneigung=%.1f\n", val);
         } else {
-            CONSOLE_SERIAL.println("Write failed: HKneigung (library busy)");
+            CONSOLE_SERIAL.println("Write deferred: HKneigung (library busy)");
         }
     }
     sender->setState(number); // report the selected option back to the HA panel
@@ -384,11 +427,10 @@ void setHKneigung (HANumeric number, HANumber* sender) {
 void setHKniveau (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        if (vitoWIFI.write(setTempHKniveau, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempHKniveau, val, "HKniveau")) {
             CONSOLE_SERIAL.printf("Write queued: HKniveau=%.1f K\n", val);
         } else {
-            CONSOLE_SERIAL.println("Write failed: HKniveau (library busy)");
+            CONSOLE_SERIAL.println("Write deferred: HKniveau (library busy)");
         }
     }
     sender->setState(number); // report the selected option back to the HA panel
@@ -397,11 +439,10 @@ void setHKniveau (HANumeric number, HANumber* sender) {
 void setWWSoll (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        if (vitoWIFI.write(setTempWWsoll, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempWWsoll, val, "WWSoll")) {
             CONSOLE_SERIAL.printf("Write queued: WWSoll=%.1f°C\n", val);
         } else {
-            CONSOLE_SERIAL.println("Write failed: WWSoll (library busy)");
+            CONSOLE_SERIAL.println("Write deferred: WWSoll (library busy)");
         }
     }
     sender->setState(number); // report the selected option back to the HA panel
@@ -410,11 +451,10 @@ void setWWSoll (HANumeric number, HANumber* sender) {
 void setWWSoll2 (HANumeric number, HANumber* sender) {
     if (number.isSet()) {
         float val = number.toFloat();
-        if (vitoWIFI.write(setTempWWsoll2, val)) {
-            vitoWritePending = true;  // Pause read polling
+        if (queueOrWriteFloat(setTempWWsoll2, val, "WWSoll2")) {
             CONSOLE_SERIAL.printf("Write queued: WWSoll2=%.1f°C\n", val);
         } else {
-            CONSOLE_SERIAL.println("Write failed: WWSoll2 (library busy)");
+            CONSOLE_SERIAL.println("Write deferred: WWSoll2 (library busy)");
         }
     }
     sender->setState(number); // report the selected option back to the HA panel
@@ -422,11 +462,10 @@ void setWWSoll2 (HANumeric number, HANumber* sender) {
 
 void onTargetTemperatureCommand(HANumeric temperature, HAHVAC* sender) {
     float val = temperature.toFloat();
-    if (vitoWIFI.write(setTempRaumSoll, val)) {
-        vitoWritePending = true;  // Pause read polling
+    if (queueOrWriteFloat(setTempRaumSoll, val, "RaumSoll (HVAC)")) {
         CONSOLE_SERIAL.printf("Write queued: RaumSoll (HVAC)=%.1f°C\n", val);
     } else {
-        CONSOLE_SERIAL.println("Write failed: RaumSoll (HVAC, library busy)");
+        CONSOLE_SERIAL.println("Write deferred: RaumSoll (HVAC, library busy)");
     }
 
     sender->setTargetTemperature(temperature); // report target temperature back to the HA panel
@@ -461,43 +500,39 @@ void onModeCommand(HAHVAC::Mode mode, HAHVAC* sender) {
 void onManualModeCommand(int8_t index, HASelect* sender)
 {
     const char* modeLabel = "unknown";
+    const char* writeLabel = "ManualMode";
+    uint8_t writeValue = 0;
     switch (index) {
     case 0:
         // Option "Normal" was selected
         modeLabel = "Normal";
-        if (vitoWIFI.write(setManualMode, static_cast<uint8_t>(index))) {
-            vitoWritePending = true;  // Pause read polling
-            CONSOLE_SERIAL.println("Write queued: ManualMode=Normal");
-        } else {
-            CONSOLE_SERIAL.println("Write failed: ManualMode (library busy)");
-        }
+        writeLabel = "ManualMode=Normal";
+        writeValue = static_cast<uint8_t>(index);
         break;
 
     case 1:
         // Option "Manueller Heizbetrieb" was selected
         modeLabel = "Manuel";
-        if (vitoWIFI.write(setManualMode, static_cast<uint8_t>(index))) {
-            vitoWritePending = true;  // Pause read polling
-            CONSOLE_SERIAL.println("Write queued: ManualMode=Manuel");
-        } else {
-            CONSOLE_SERIAL.println("Write failed: ManualMode (library busy)");
-        }
+        writeLabel = "ManualMode=Manuel";
+        writeValue = static_cast<uint8_t>(index);
         break;
 
     case 2:
         // Option "1x WW auf Temp2" was selected
         modeLabel = "WW auf Temp2";
-        if (vitoWIFI.write(setManualMode, static_cast<uint8_t>(index))) {
-            vitoWritePending = true;  // Pause read polling
-            CONSOLE_SERIAL.println("Write queued: ManualMode=WW auf Temp2");
-        } else {
-            CONSOLE_SERIAL.println("Write failed: ManualMode (library busy)");
-        }
+        writeLabel = "ManualMode=WW auf Temp2";
+        writeValue = static_cast<uint8_t>(index);
         break;
 
     default:
         // unknown option
         return;
+    }
+
+    if (queueOrWriteU8(setManualMode, writeValue, writeLabel)) {
+        CONSOLE_SERIAL.printf("Write queued: %s\n", writeLabel);
+    } else {
+        CONSOLE_SERIAL.printf("Write deferred: %s (library busy)\n", writeLabel);
     }
 
     sender->setState(index); // report the selected option back to the HA panel
@@ -518,4 +553,8 @@ void onMQTTConnected() {
     mediumPollInterval.setState((float)(vitoMediumState.intervalMs / 1000UL));
     slowPollInterval.setState((float)(vitoSlowState.intervalMs / 1000UL));
     errorThresholdNumber.setState((float)vitoErrorThreshold);
+}
+
+void onMQTTDisconnected() {
+    CONSOLE_SERIAL.println("[MQTT] disconnected");
 }

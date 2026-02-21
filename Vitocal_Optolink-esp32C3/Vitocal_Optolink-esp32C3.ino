@@ -145,9 +145,17 @@ VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 #endif
 static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 
+volatile bool   vitoWritePending   = false; // true when a write has been queued
 static bool     vitoBusy           = false; // true while we wait for a response
-volatile bool   vitoWritePending   = false; // true when a write has been queued (gives writes priority)
 static uint32_t vitoLastResponseMs = 0;     // millis() when last response/error arrived
+
+volatile bool pendingWriteActive = false;
+volatile bool pendingWriteIsU8 = false;
+VitoWiFi::Datapoint* pendingWriteDp = nullptr;
+float pendingWriteFloatValue = 0.0f;
+uint8_t pendingWriteU8Value = 0;
+uint32_t pendingWriteNextTryMs = 0;
+const char* pendingWriteLabel = "";
 
 // labels
 static const char* const operationModeLabels[] = {
@@ -401,23 +409,6 @@ bool pollVitoGroup(
     return false;
 }
 
-// Schedule the next read request from polling groups.
-// Called from response/error handlers to queue reads immediately (event-driven).
-// Priority: writes > fast > medium > slow
-void scheduleNextRead() {
-    // Writes have priority; pause read polling while writing
-    if (vitoWritePending) {
-        return;
-    }
-
-    // Try groups in priority order until one queues successfully
-    if (!pollVitoGroup(vitoFastState, vitoFast, vitoFastSize, vitoResponseGapMs)) {
-        if (!pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, vitoResponseGapMs)) {
-            pollVitoGroup(vitoSlowState, vitoSlow, vitoSlowSize, vitoResponseGapMs);
-        }
-    }
-}
-
 
 
 //## setup#####################################################################
@@ -463,14 +454,6 @@ void setup() {
   vitoWIFI.onResponse(onVitoResponse);
   vitoWIFI.onError(onVitoError);
   vitoWIFI.begin();
-
-  // Bootstrap: queue the first read to start the event-driven cycle
-  CONSOLE_SERIAL.println("════════════════════════════════════════════════════════");
-  CONSOLE_SERIAL.println("[INIT] VitoWiFi initialized and ready");
-  CONSOLE_SERIAL.println("[INIT] Starting event-driven read scheduler...");
-  scheduleNextRead();
-  CONSOLE_SERIAL.println("[INIT] Polling cycle started");
-  CONSOLE_SERIAL.println("════════════════════════════════════════════════════════");
 
   // Minimal web server
   server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
@@ -532,34 +515,64 @@ void myPrintRuntime() {
 void loop() {
   myRuntimeMeasurement();
 
-  // Event-driven architecture: reads are queued by response/error handlers.
-  // This loop just keeps the VitoWiFi state machine ticking and dispatches callbacks.
-  // No polling needed here; write priority is handled in scheduleNextRead().
-  
-  // Critical: Process VitoWiFi responses first (callbacks update sensor values)
-  vitoWIFI.loop();
-  
-  // Critical: Publish sensor updates immediately after VitoWiFi processes them
-  mqtt.loop();
-  
-  // Periodic: Publish status/availability with accurate current state
+  // Retry deferred writes without blocking loop execution.
+  if (pendingWriteActive && millis() >= pendingWriteNextTryMs) {
+    bool queued = false;
+    if (!vitoBusy && pendingWriteDp != nullptr) {
+      if (pendingWriteIsU8) {
+        queued = vitoWIFI.write(*pendingWriteDp, pendingWriteU8Value);
+      } else {
+        queued = vitoWIFI.write(*pendingWriteDp, pendingWriteFloatValue);
+      }
+    }
+
+    if (queued) {
+      vitoWritePending = true;
+      pendingWriteActive = false;
+      CONSOLE_SERIAL.printf("[VITO] Deferred write queued: %s\n", pendingWriteLabel);
+    } else {
+      pendingWriteNextTryMs = millis() + 250UL;
+    }
+  }
+
+  // cyclic VitoWiFi reads (v3 API, grouped for load balancing)
+  // We schedule at most ONE new request per loop iteration
+  bool queued = false;
+
+  // Priority: fast -> medium -> slow
+  if (!vitoWritePending) {
+    if (!queued) queued = pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   vitoResponseGapMs);
+    if (!queued) queued = pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, vitoResponseGapMs);
+    if (!queued) queued = pollVitoGroup(vitoSlowState,   vitoSlow,   vitoSlowSize,   vitoResponseGapMs);
+  }
+
+  // (If you still want the test group during debugging, put it here and
+  // guard with #if / #else so you don't poll dpTempOutside twice.)
+
+
   EVERY_N_SECONDS(8) {
     count++;
     toggle = !toggle;
     device.publishAvailability();
-    CONSOLE_SERIAL.println("VitoWiFi read cycle running");
+    CONSOLE_SERIAL.println("VitoWiFi cycle read running");
   }
 
-  // Low priority: OTA and serial diagnostics
+  EVERY_N_SECONDS(30) {
+    CONSOLE_SERIAL.printf("[MQTT] wifi=%s mqtt=%s\n",
+      (WiFi.status() == WL_CONNECTED) ? "up" : "down",
+      mqtt.isConnected() ? "up" : "down");
+  }
+
+  // Essential: Keep the library state machine running
+  vitoWIFI.loop();
+  mqtt.loop();
   // Note: ElegantOTA.loop() not needed with AsyncWebServer (v3.x uses event handlers)
   WebSerial.loop();
 
-  // Periodic maintenance: WiFi connectivity check (5 minutes)
   EVERY_N_SECONDS(300) {
     myCheckWIFIcyclic();
   }
 
-  // Optional: Runtime statistics printing (disabled)
   EVERY_N_SECONDS(4) {
     // myPrintRuntime();
   }
@@ -569,9 +582,11 @@ void loop() {
 //** VitoWiFi response/error handlers (v3) ******************************
 void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request) {
     vitoBusy = false;
-    vitoWritePending = false;  // Write completed, resume polling reads
     uint32_t nowMs = millis();
     vitoLastResponseMs = nowMs;
+  if (vitoWritePending && !pendingWriteActive) {
+    vitoWritePending = false;
+  }
 
     // compute time between request and this response
     uint32_t dtReqMs = 0;
@@ -625,12 +640,10 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
     } else if (isDp(request, dpRelEHeizStufe2)) {
         uint8_t v2 = value;
-        logDpUint("RelEHeizStufe2 (raw)", v2, lastRelEHeiz2Ms);
         eHeiz2 = eHeiz1 + (2 * v2);
-        if (eHeiz2 > 3) (eHeiz2 = 0);
         RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
         HVACwaermepumpe.setAuxState(eHeiz2 != 0);
-        logDpUint("RelEHeizStufe2 (combined: eHeiz1 + (2 * eHeiz2))", eHeiz2, lastRelEHeiz2Ms);
+        logDpUint("RelEHeizStufe2 (combined)", eHeiz2, lastRelEHeiz2Ms);
 
     } else if (isDp(request, dpHeizkreispumpe)) {
         uint8_t v = value;
@@ -717,63 +730,30 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
         HKneigungSens.setState(t);
         logDpFloat("TempHKNeigung", t, lastHKneigungMs);
     }
-
-    // EVENT-DRIVEN: Schedule next read immediately after this response
-    // Check if this was a write response and log accordingly
-    bool isWrite = false;
-    if (isDp(request, setTempRaumSoll) || isDp(request, setTempRaumSollRed) || 
-        isDp(request, setTempHystWWsoll) || isDp(request, setTempHKneigung) ||
-        isDp(request, setTempHKniveau) || isDp(request, setTempWWsoll) ||
-        isDp(request, setTempWWsoll2)) {
-        isWrite = true;
-        CONSOLE_SERIAL.println("══════════════════════════════════════════════════════");
-        CONSOLE_SERIAL.printf("[VITO] ✓ WRITE CONFIRMED: %s at T=%lu ms\n", name, nowMs);
-        CONSOLE_SERIAL.printf("[VITO] Device accepted and processed the write request\n");
-        CONSOLE_SERIAL.println("[VITO] Resuming read polling (vitoWritePending=false)");
-        CONSOLE_SERIAL.println("══════════════════════════════════════════════════════");
-    }
-    scheduleNextRead();
 }
+
 
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
   vitoBusy = false;
-  bool wasWritePending = vitoWritePending;  // Check before clearing
-  vitoWritePending = false;  // Write failed, resume polling reads
   vitoLastResponseMs = millis();
+  if (vitoWritePending && !pendingWriteActive) {
+    vitoWritePending = false;
+  }
 
   // Record error diagnostics and apply simple recovery/backoff if needed.
-  uint32_t errorTimeMs = millis();
-  const char* errorStr = "UNKNOWN";
-  if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
-    errorStr = "TIMEOUT";
-  } else if (error == VitoWiFi::OptolinkResult::LENGTH) {
-    errorStr = "LENGTH";
-  } else if (error == VitoWiFi::OptolinkResult::NACK) {
-    errorStr = "NACK";
-  } else if (error == VitoWiFi::OptolinkResult::CRC) {
-    errorStr = "CRC";
-  } else if (error == VitoWiFi::OptolinkResult::ERROR) {
-    errorStr = "ERROR";
-  }
-  
-  CONSOLE_SERIAL.println("══════════════════════════════════════════════════════");
-  CONSOLE_SERIAL.printf("[VITO] ✗ ERROR on datapoint '%s' at T=%lu ms\n", request.name(), errorTimeMs);
-  CONSOLE_SERIAL.printf("[VITO] Error type: %s\n", errorStr);
-  if (wasWritePending) {
-    CONSOLE_SERIAL.println("[VITO] This was a WRITE operation");
-    CONSOLE_SERIAL.println("[VITO] Write failed - device rejected or did not respond");
-    CONSOLE_SERIAL.println("[VITO] Resuming read polling, Home Assistant may need to retry write");
-  }
-  CONSOLE_SERIAL.println("══════════════════════════════════════════════════════");
+  CONSOLE_SERIAL.print("VitoWiFi error for ");
+  CONSOLE_SERIAL.print(request.name());
+  CONSOLE_SERIAL.print(": ");
+  CONSOLE_SERIAL.println(static_cast<int>(error));
 
   // Track errors: consecutive and within a window
-  uint32_t now = errorTimeMs;
-  vitoConsecutiveErrors++;
+  uint32_t now = millis();
+  vitoConsecutiveErrors = vitoConsecutiveErrors + 1;
   if (vitoErrorWindowStartMs == 0 || (now - vitoErrorWindowStartMs) > vitoErrorWindowMs) {
     vitoErrorWindowStartMs = now;
     vitoErrorCount = 0;
   }
-  vitoErrorCount++;
+  vitoErrorCount = vitoErrorCount + 1;
 
   // Publish diagnostic counters to HA
   vitoErrorCountSens.setValue(vitoErrorCount);
@@ -792,9 +772,6 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
     vitoWIFI.begin();
     vitoConsecutiveErrors = 0;
   }
-
-  // EVENT: Schedule next read immediately after this error
-  scheduleNextRead();
 }
 
 
