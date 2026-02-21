@@ -723,8 +723,8 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
     bool isWrite = false;
     if (isDp(request, setTempRaumSoll) || isDp(request, setTempRaumSollRed) || 
         isDp(request, setTempHystWWsoll) || isDp(request, setTempHKneigung) ||
-        isDp(request, setTempHKniveau) || isDp(request, setTempWWSoll) ||
-        isDp(request, setTempWWSoll2)) {
+        isDp(request, setTempHKniveau) || isDp(request, setTempWWsoll) ||
+        isDp(request, setTempWWsoll2)) {
         isWrite = true;
         CONSOLE_SERIAL.println("══════════════════════════════════════════════════════");
         CONSOLE_SERIAL.printf("[VITO] ✓ WRITE CONFIRMED: %s at T=%lu ms\n", name, nowMs);
