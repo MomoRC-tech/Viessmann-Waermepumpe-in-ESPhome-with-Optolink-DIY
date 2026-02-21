@@ -14,28 +14,28 @@ VitoWiFi::Datapoint dpCompFrequency ("compressorFreq", 0x1A54, 1, VitoWiFi::noco
 
 // Raum / WW set + get
 VitoWiFi::Datapoint dpTempRaumSoll      ("RaumSollTemp",     0x2000, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempRaumSoll     ("SetRaumSollTemp",  0x2000, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempRaumSoll     ("RaumSollTemp",     0x2000, 2, VitoWiFi::div10);
 VitoWiFi::Datapoint dpTempRaumSollRed   ("RaumSollRed",      0x2001, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempRaumSollRed  ("SetRaumSollRed",   0x2001, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempRaumSollRed  ("RaumSollRed",      0x2001, 2, VitoWiFi::div10);
 
 VitoWiFi::Datapoint dpTempWWSoll        ("WWtempSoll",       0x6000, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempWWsoll       ("SetWWtempSoll",    0x6000, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempWWsoll       ("WWtempSoll",       0x6000, 2, VitoWiFi::div10);
 VitoWiFi::Datapoint dpTempWWSoll2       ("WWtempSoll2",      0x600C, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempWWsoll2      ("SetWWtempSoll2",   0x600C, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempWWsoll2      ("WWtempSoll2",      0x600C, 2, VitoWiFi::div10);
 
 VitoWiFi::Datapoint dpTempHystWWSoll    ("HystWWsoll",       0x6007, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempHystWWsoll   ("SetTempHystWWsoll",0x6007, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempHystWWsoll   ("HystWWsoll",       0x6007, 2, VitoWiFi::div10);
 
 VitoWiFi::Datapoint dpTempHKniveau      ("HKniveau",         0x2006, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempHKniveau     ("SetHKniveau",      0x2006, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempHKniveau     ("HKniveau",         0x2006, 2, VitoWiFi::div10);
 VitoWiFi::Datapoint dpTempHKNeigung     ("HKneigung",        0x2007, 2, VitoWiFi::div10);
-VitoWiFi::Datapoint setTempHKneigung    ("SetHKneigung",     0x2007, 2, VitoWiFi::div10);
+VitoWiFi::Datapoint setTempHKneigung    ("HKneigung",        0x2007, 2, VitoWiFi::div10);
 
 // Status / modes (1 byte noconv -> uint8_t)
 VitoWiFi::Datapoint dpOperationMode     ("operationmode",    0xB000, 1, VitoWiFi::noconv);
-VitoWiFi::Datapoint setOperationMode    ("setOperationmode", 0xB000, 1, VitoWiFi::noconv);
+VitoWiFi::Datapoint setOperationMode    ("operationmode",    0xB000, 1, VitoWiFi::noconv);
 VitoWiFi::Datapoint dpManualMode        ("manualmode",       0xB020, 1, VitoWiFi::noconv);
-VitoWiFi::Datapoint setManualMode       ("setManualmode",    0xB020, 1, VitoWiFi::noconv);
+VitoWiFi::Datapoint setManualMode       ("manualmode",       0xB020, 1, VitoWiFi::noconv);
 
 // Relays
 VitoWiFi::Datapoint dpHeizkreispumpe    ("heizkreispumpe",       0x048D, 1, VitoWiFi::noconv);
