@@ -2,10 +2,16 @@
 
 All notable changes to this project will be documented here.
 
-## [v0.3.5] - 2026-02-21
+## [v0.4.1] - 2026-02-21
 - Optimize main loop timing: process VitoWiFi responses and MQTT publishes first
 - Reorder loop operations for better sensor update timing and accuracy
 - Move low-priority OTA/serial operations after critical sensor processing
+
+## [v0.4.0] - 2026-02-21
+- Add comprehensive write flow console tracing for setRaumSoll MQTT command
+- Implement detailed logging from MQTT input through device confirmation
+- Include write error detection and classification (TIMEOUT, NACK, CRC, LENGTH, ERROR)
+- Add latency measurement for write operations
 
 ## [v0.3.2] - 2026-02-21
 - Home Assistant: publish initial states for polling interval Number entities on MQTT connect (fixes empty/unknown values)
