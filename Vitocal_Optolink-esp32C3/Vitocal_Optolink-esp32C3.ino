@@ -751,11 +751,10 @@ void loop() {
   }
 
 
-  EVERY_N_SECONDS(8) {
+  EVERY_N_SECONDS(13) {
     count++;
     toggle = !toggle;
     device.publishAvailability();
-    CONSOLE_SERIAL.println("[CYCLE] VitoWiFi read running");
   }
 
   EVERY_N_SECONDS(30) {
@@ -764,7 +763,7 @@ void loop() {
       mqtt.isConnected() ? "up" : "down");
   }
 
-  EVERY_N_SECONDS(10) {
+  EVERY_N_SECONDS(11) {
     printConsoleDebugInputs();
   }
 
