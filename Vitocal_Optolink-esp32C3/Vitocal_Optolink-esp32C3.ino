@@ -134,9 +134,9 @@ static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 
 // Default group intervals tuned for stability vs. throughput
-static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 27000UL; // relays/pumps/compressor/status
-static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 41000UL; // temperatures
-static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 103000UL; // setpoints/hysteresis/heating curve
+static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 36000UL; // relays/pumps/compressor/status
+static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 60000UL; // temperatures
+static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 150000UL; // setpoints/hysteresis/heating curve
 static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 7900UL; // Dfast: restart vitoDebug round every 8s
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
@@ -405,6 +405,14 @@ inline void logDpMode(const char* tag, uint8_t v, const char* label, uint32_t& l
         CONSOLE_SERIAL.print(" ms)");
     }
     CONSOLE_SERIAL.println();
+}
+
+inline bool isSaneTemperature(const char* tag, float value) {
+  if (!isfinite(value) || value < -50.0f || value > 120.0f) {
+    CONSOLE_SERIAL.printf("[SAN] drop %s: %.1f (out of range)\n", tag, value);
+    return false;
+  }
+  return true;
 }
 
 
@@ -889,33 +897,43 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
     if (isDp(request, dpTempOutside)) {
         float temp = value;
-        AussenTempSens.setValue(temp);
-        logDpFloat("tmpAu (AussenTemp)", temp, lastTempOutsideMs);
+        if (isSaneTemperature("AussenTemp", temp)) {
+          AussenTempSens.setValue(temp);
+          logDpFloat("tmpAu (AussenTemp)", temp, lastTempOutsideMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpWWoben)) {
         float temp = value;
-        WWtempObenSens.setValue(temp);
-        logDpFloat("WWo (WWtempOben)", temp, lastWWobenMs);
+        if (isSaneTemperature("WWtempOben", temp)) {
+          WWtempObenSens.setValue(temp);
+          logDpFloat("WWo (WWtempOben)", temp, lastWWobenMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpVorlaufSoll)) {
         float temp = value;
-        VorlaufTempSetSens.setValue(temp);
-        logDpFloat("VorlaufSoll", temp, lastVorlaufSollMs);
+        if (isSaneTemperature("VorlaufSoll", temp)) {
+          VorlaufTempSetSens.setValue(temp);
+          logDpFloat("VorlaufSoll", temp, lastVorlaufSollMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpVorlaufIst)) {
         float temp = value;
-        VorlaufTempSens.setValue(temp);
-        HVACwaermepumpe.setCurrentTemperature(temp);
-        logDpFloat("VorlaufIst", temp, lastVorlaufIstMs);
+        if (isSaneTemperature("VorlaufIst", temp)) {
+          VorlaufTempSens.setValue(temp);
+          HVACwaermepumpe.setCurrentTemperature(temp);
+          logDpFloat("VorlaufIst", temp, lastVorlaufIstMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpRuecklauf)) {
         float temp = value;
-        RuecklaufTempSens.setValue(temp);
-        logDpFloat("Ruecklauf", temp, lastRuecklaufMs);
+        if (isSaneTemperature("Ruecklauf", temp)) {
+          RuecklaufTempSens.setValue(temp);
+          logDpFloat("Ruecklauf", temp, lastRuecklaufMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpRelEHeizStufe1)) {
@@ -990,45 +1008,59 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
     } else if (isDp(request, dpTempRaumSoll)) {
         float t = value;
-        RaumSollTempSens.setState(t);
-        HVACwaermepumpe.setTargetTemperature(t);
-        logDpFloat("RaumSollTemp", t, lastRaumSollMs);
+        if (isSaneTemperature("RaumSollTemp", t)) {
+          RaumSollTempSens.setState(t);
+          HVACwaermepumpe.setTargetTemperature(t);
+          logDpFloat("RaumSollTemp", t, lastRaumSollMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpTempRaumSollRed)) {
         float t = value;
-        RaumSollRedSens.setState(t);
-        logDpFloat("RaumSollRed", t, lastRaumSollRedMs);
+        if (isSaneTemperature("RaumSollRed", t)) {
+          RaumSollRedSens.setState(t);
+          logDpFloat("RaumSollRed", t, lastRaumSollRedMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpTempWWSoll)) {
         float t = value;
-        WWtempSollSens.setState(t);
-        logDpFloat("WWtempSoll", t, lastWWSollMs);
+        if (isSaneTemperature("WWtempSoll", t)) {
+          WWtempSollSens.setState(t);
+          logDpFloat("WWtempSoll", t, lastWWSollMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpTempWWSoll2)) {
         float t = value;
-        WWtempSoll2Sens.setState(t);
-        logDpFloat("WWtempSoll2", t, lastWWSoll2Ms);
+        if (isSaneTemperature("WWtempSoll2", t)) {
+          WWtempSoll2Sens.setState(t);
+          logDpFloat("WWtempSoll2", t, lastWWSoll2Ms);
+        }
       handled = true;
 
     } else if (isDp(request, dpTempHystWWSoll)) {
         float t = value;
-        HystWWsollSens.setState(t);
-        logDpFloat("TempHystWWSoll", t, lastHystWWSollMs);
+        if (isSaneTemperature("TempHystWWSoll", t)) {
+          HystWWsollSens.setState(t);
+          logDpFloat("TempHystWWSoll", t, lastHystWWSollMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpTempHKniveau)) {
         float t = value;
-        HKniveauSens.setState(t);
-        logDpFloat("TempHKniveau", t, lastHKniveauMs);
+        if (isSaneTemperature("TempHKniveau", t)) {
+          HKniveauSens.setState(t);
+          logDpFloat("TempHKniveau", t, lastHKniveauMs);
+        }
       handled = true;
 
     } else if (isDp(request, dpTempHKNeigung)) {
         float t = value;
-        HKneigungSens.setState(t);
-        logDpFloat("TempHKNeigung", t, lastHKneigungMs);
+        if (isSaneTemperature("TempHKNeigung", t)) {
+          HKneigungSens.setState(t);
+          logDpFloat("TempHKNeigung", t, lastHKneigungMs);
+        }
       handled = true;
     }
 
