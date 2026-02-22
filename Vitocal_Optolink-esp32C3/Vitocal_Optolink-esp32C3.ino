@@ -141,7 +141,7 @@ VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 // - at most one in-flight request at a time
 // - enforce a small gap after each response/error
 #ifndef VITO_RESPONSE_GAP_MS
-#define VITO_RESPONSE_GAP_MS 50UL   // ms after each response before next request
+#define VITO_RESPONSE_GAP_MS 0UL   // no extra software gap; rely on VitoWiFi busy/protocol timing
 #endif
 static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 
@@ -492,13 +492,18 @@ void myRuntimeMeasurement()  {
 void myPrintRuntime() {
  if (rtSamples > 0) {
       float meanUs = (float)rtSumUs / (float)rtSamples;
+  float minMs  = (float)rtMinUs / 1000.0f;
+  float maxMs  = (float)rtMaxUs / 1000.0f;
+  float meanMs = meanUs / 1000.0f;
 
-      CONSOLE_SERIAL.print(F("[RT] loop Δt (µs): min="));
-      CONSOLE_SERIAL.print(rtMinUs);
+  CONSOLE_SERIAL.print(F("[RT] loop Δt (ms, 2s window): min="));
+  CONSOLE_SERIAL.print(minMs, 3);
       CONSOLE_SERIAL.print(F(" max="));
-      CONSOLE_SERIAL.print(rtMaxUs);
+  CONSOLE_SERIAL.print(maxMs, 3);
       CONSOLE_SERIAL.print(F(" mean="));
-      CONSOLE_SERIAL.println(meanUs);
+    CONSOLE_SERIAL.print(meanMs, 3);
+      CONSOLE_SERIAL.print(F(" samples="));
+    CONSOLE_SERIAL.println(rtSamples);
 
       // reset stats window
       rtMinUs   = UINT32_MAX;
@@ -573,8 +578,8 @@ void loop() {
     myCheckWIFIcyclic();
   }
 
-  EVERY_N_SECONDS(4) {
-    // myPrintRuntime();
+  EVERY_N_SECONDS(2) {
+    myPrintRuntime();
   }
 }
 
@@ -740,11 +745,23 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
     vitoWritePending = false;
   }
 
-  // Record error diagnostics and apply simple recovery/backoff if needed.
-  CONSOLE_SERIAL.print("VitoWiFi error for ");
+  // Record error diagnostics in the same style as upstream examples.
+  CONSOLE_SERIAL.print("Datapoint \"");
   CONSOLE_SERIAL.print(request.name());
-  CONSOLE_SERIAL.print(": ");
-  CONSOLE_SERIAL.println(static_cast<int>(error));
+  CONSOLE_SERIAL.print("\" error: ");
+  if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
+    CONSOLE_SERIAL.println("timeout");
+  } else if (error == VitoWiFi::OptolinkResult::LENGTH) {
+    CONSOLE_SERIAL.println("length");
+  } else if (error == VitoWiFi::OptolinkResult::NACK) {
+    CONSOLE_SERIAL.println("nack");
+  } else if (error == VitoWiFi::OptolinkResult::CRC) {
+    CONSOLE_SERIAL.println("crc");
+  } else if (error == VitoWiFi::OptolinkResult::ERROR) {
+    CONSOLE_SERIAL.println("error");
+  } else {
+    CONSOLE_SERIAL.println(static_cast<int>(error));
+  }
 
   // Track errors: consecutive and within a window
   uint32_t now = millis();
