@@ -7,7 +7,7 @@ This README documents the main ESP32‑C3 Arduino sketch in `Vitocal_Optolink-es
 
 This project uses an ESP32‑C3 (Arduino framework) to connect a DIY Optolink adapter to a Viessmann Vitocal heat pump. Communication to the heat pump is handled by the VitoWiFi v3 library. Home Assistant integration is done via MQTT using ArduinoHA entities defined in `Vitocal_Optolink-esp32C3/HA_mqtt_addin.h`.
 
-**Core Architecture:** Event-driven non-blocking communication using VitoWiFi v3's callback-based API. Datapoints are organized into polling groups (fast/medium/slow) with adjustable intervals. The scheduler uses a push-based model: callbacks (`onVitoResponse`, `onVitoError`) queue the next read immediately, eliminating wasted CPU from failed attempts. Writes are prioritized by temporarily pausing read polling. All requests are paced with only one in-flight at a time, plus a small response gap (default 50 ms).
+**Core Architecture:** Event-driven non-blocking communication using VitoWiFi v3's callback-based API. Datapoints are organized into polling groups (fast/medium/slow) with adjustable intervals. The main loop schedules at most one read request per iteration via `pollVitoGroup(...)`, guarded by `vitoBusy` (one in-flight request only). Writes are prioritized by pausing read polling while a write is pending. Optional debug polling modes can temporarily switch the active polling set.
 
 ### Hardware and Wiring
 
@@ -48,11 +48,15 @@ Notes:
 
 - Reliable two-way communication with the Viessmann Vitocal 343-G via Optolink using VitoWiFi v3 (protocol “VS1”/KW).
 - Grouped polling scheduler with HA-adjustable intervals (fast/medium/slow) exposed via `HA_mqtt_addin.h`.
-- Default polling intervals: fast 40 s, medium 64 s, slow 180 s (can be changed from Home Assistant).
-- Pacing: only one Optolink request in-flight at a time, plus a small response gap after each response/error (default `VITO_RESPONSE_GAP_MS=50`).
+- Default polling intervals: fast 36 s, medium 60 s, slow 150 s (can be changed from Home Assistant).
+- Pacing: only one Optolink request in-flight at a time; software response gap is configurable via `VITO_RESPONSE_GAP_MS` and defaults to `0`.
 - Home Assistant entities (numbers/selects/switches) bound to datapoints and commands.
 - Web UI providing ElegantOTA (`/update`) and a WebSerial console (`/webserial`) for debugging.
 - German labels for operation modes and manual modes restored for UI consistency.
+- Write trace logging (`[WRT]`) with queued/success/failed details and request timing.
+- Timeout post-check for writes: after a write timeout, the next matching read verifies whether the value was applied.
+- Temperature plausibility filter (`-50..120 °C`) to suppress obvious outliers before publishing to HA.
+- Debug modes via console/WebSerial commands: `Dfast`, `Deheiz`, `Druntime`, `Ddebug` (auto-off after 5 minutes).
 
 ### Async WebServer, ElegantOTA, and WebSerial
 - The project uses `ESP Async WebServer` to avoid blocking the main loop and to serve ElegantOTA and WebSerial endpoints concurrently.
@@ -78,54 +82,58 @@ Notes:
 	- `vito_consecutive_errors`: current consecutive error streak.
 	- `vito_error_threshold`: configurable consecutive error threshold (default 30; range 1–100).
 - When the threshold is reached, the firmware applies a brief backoff (increases poll intervals) and reinitializes VitoWiFi.
+- A rolling 10-minute diagnostics window tracks timeout and sanity-drop counts and prints them in `[DBG]` output.
+
+### Debug commands (USB serial + WebSerial)
+
+- `Dfast`: poll only the small debug group (`dpWWoben`, `dpTempWWSoll`).
+- `Deheiz`: poll only `dpRelEHeizStufe1` and `dpRelEHeizStufe2` in sequence (10 s round interval).
+- `Druntime`: print loop runtime stats every 2 seconds.
+- `Ddebug`: enable detailed per-datapoint `[RSP]` logs.
+
+All debug modes auto-disable after 5 minutes.
 
 ### Communication Mechanism: Reading and Writing
 
 #### Event-Driven Non-Blocking Architecture
 
-This code implements **event-driven, non-blocking communication** using VitoWiFi v3's callback-based API. Unlike traditional loop-based polling where code continuously attempts to queue requests, this architecture uses **push-based scheduling**: callbacks queue the next read immediately upon completion.
+This code implements **event-driven, non-blocking communication** using VitoWiFi v3's callback-based API.
 
 #### Reading (Polling Cycle)
 
 The read cycle operates in three priority-ordered groups with configurable intervals:
 
-1. **Fast Group** (default 40s): 9 datapoints — relays, pumps, compressor status
-2. **Medium Group** (default 64s): 7 datapoints — temperatures, heating modes  
-3. **Slow Group** (default 180s): 7 datapoints — setpoints, hysteresis, heating curve
+1. **Fast Group** (default 36s): relays, pumps, compressor status
+2. **Medium Group** (default 60s): temperatures, heating modes
+3. **Slow Group** (default 150s): setpoints, hysteresis, heating curve
 
 **Flow for each read:**
 
 ```
 User loop()
   ↓
-vitoWIFI.loop() [state machine tick]
+Check pending deferred write retry (if any)
   ↓
-VitoWiFi detects completion of previous request
+If no write pending: try at most one read this loop
+  - debug modes first (if active), otherwise fast → medium → slow
   ↓
-Dispatches onVitoResponse() or onVitoError() callback
-  ↓
-Callback calls scheduleNextRead()
-  ↓
-scheduleNextRead() checks write priority, then tries:
-  - if (pollVitoGroup(fast)) return;    ← succeeds if interval elapsed
-  - if (pollVitoGroup(medium)) return;  ← else try medium
-  - pollVitoGroup(slow);                ← else try slow
-  ↓
-pollVitoGroup() checks interval + response gap + calls vitoWIFI.read()
+pollVitoGroup() checks: busy flag, optional response gap, group interval
   ↓
 vitoWIFI.read() returns bool:
-  - true: request queued, set vitoBusy=true, advance to next datapoint
-  - false: library busy (request still in-flight), retry same datapoint next cycle
+  - true: request queued, set vitoBusy=true, store in-flight datapoint/timestamp
+  - false: not queued now; retry in a later loop
   ↓
-Return to user loop()
+vitoWIFI.loop() dispatches onVitoResponse()/onVitoError()
+  ↓
+Callbacks clear busy/pending flags, decode/publish values, and emit logs
 ```
 
 **Key characteristics:**
 - Only one request in-flight at a time (`vitoBusy` flag prevents concurrent requests)
-- Response gap of 50 ms between requests (device-friendly pacing)
+- Optional software response gap between requests (`VITO_RESPONSE_GAP_MS`, default 0)
 - Each polling group tracks its own interval timer and datapoint index
-- If a read returns `false` (library busy), the scheduler retries it after checking other groups
-- Bootstrap: `setup()` calls `scheduleNextRead()` after `vitoWIFI.begin()` to start the first read
+- If a read returns `false`, the same datapoint remains queued for a later retry
+- Polling starts automatically from the main loop after `setup()`
 
 **Compliance with VitoWiFi v3:**
 - ✅ `vitoWIFI.loop()` called every iteration (required for internal state machine and callback dispatch)
@@ -146,20 +154,17 @@ MQTT command arrives
   ↓
 ArduinoHA routes to callback (e.g., onTargetTemperatureCommand)
   ↓
-Callback validates and calls vitoWIFI.write(datapoint, value)
+Callback validates and tries `vitoWIFI.write(datapoint, value)`
   ↓
 vitoWIFI.write() returns bool:
-  - true: write queued, set vitoWritePending=true
-  - false: library busy, log error and return
+  - true: write queued now, set `vitoWritePending=true`
+  - false: request is deferred (`pendingWrite*`), retried every 250 ms
   ↓
-If write queued (vitoWritePending=true):
-  - scheduleNextRead() skips read polling (write has priority)
-  - onVitoResponse() or onVitoError() clears vitoWritePending=false
-  - Next cycle, polling resumes
+When write is pending, normal read polling is paused (write priority)
   ↓
-Write response reaches device immediately (no read queue ahead)
+onVitoResponse()/onVitoError() logs `[WRT]` success/failure and clears pending state
   ↓
-Typical latency: ~300 ms (serial protocol + device processing)
+If timeout occurred, firmware arms a post-timeout verify and checks next matching read
 ```
 
 **Write operations:**
@@ -174,41 +179,22 @@ Typical latency: ~300 ms (serial protocol + device processing)
 - `onManualModeCommand()` — manual mode select
 
 **Write Priority Mechanism:**
-```cpp
-extern volatile bool vitoWritePending;  // Pause reads during writes
-
-void scheduleNextRead() {
-    if (vitoWritePending) return;  // ← Writes have priority
-    // ... queue reads from polling groups
-}
-
-// Write callback example:
-if (vitoWIFI.write(setTempRoomSoll, value)) {
-    vitoWritePending = true;  // ← Signals to pause polling
-    // ... logging
-} else {
-    // ... log error; library was busy
-}
-
-// Response handler:
-void onVitoResponse(...) {
-    vitoWritePending = false;  // ← Clear priority flag
-    // ... process response
-    scheduleNextRead();  // ← Resume polling
-}
-```
+- `vitoWritePending` pauses regular read polling while a write is in flight.
+- Deferred writes (`pendingWrite*`) are retried non-blocking every 250 ms until queued.
+- `markWriteQueued(...)` stores expected value and timing for trace logs.
+- `[WRT]` logs include queue/success/failure state and request duration (`Δreq`).
+- On timeout, a post-timeout verification compares the next matching read against expected value.
 
 **Error Handling:**
-- If a write returns false (library busy), the application logs the error and allows Home Assistant to retry
-- Device typically busy <100 ms during responses, so conflicts rare
-- Unsupported datapoints (e.g., `0x0482`, `0x0489`) return NACK errors logged in diagnostics
+- If immediate write queuing fails, the firmware defers and retries automatically.
+- Communication errors are counted (rolling window + consecutive count) and published to HA.
+- After too many consecutive errors, polling is backed off briefly and VitoWiFi is reinitialized.
 
-#### Performance
+### Performance Notes
 
-- **Read latency:** ~2900–3000 ms for full round-robin (23 datapoints × ~50ms + serial overhead)
-- **Write latency:** ~300 ms when polling paused (direct path to device)
-- **CPU efficiency:** Event-driven model eliminates busy-waiting on failed queue attempts
-- **Concurrency:** Only one request in-flight; callbacks maintain exclusive access via `vitoBusy` flag
+- Request/response timing is measured per request and logged as `req=... ms` / `Δreq=... ms`.
+- Throughput depends on heat pump response latency and selected polling intervals.
+- Debug modes (`Dfast`, `Deheiz`, `Druntime`, `Ddebug`) are intended for diagnostics and temporarily alter normal polling behavior.
 
 ### Home Assistant entities
 
@@ -410,7 +396,7 @@ This implementation follows the VitoWiFi v3 non-blocking API:
 | **Handle callback dispatch from `loop()`** | Callbacks execute in `loop()` context when requests complete | ✅ |
 | **No blocking calls** | Event-driven scheduling; all I/O non-blocking | ✅ |
 
-**Architectural Improvement:** The standard VitoWiFi example shows pull-based polling (loop tries to read, retries if busy). This implementation improves on that with push-based scheduling: callbacks immediately queue the next read, eliminating wasted CPU cycles on failed attempts and creating deterministic timing.
+**Architecture Note:** This implementation is fully non-blocking and callback-driven, with one in-flight Optolink request at a time and loop-based grouped polling.
 
 ### Getting Started
 

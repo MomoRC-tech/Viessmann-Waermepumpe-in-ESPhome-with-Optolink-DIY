@@ -49,6 +49,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
 void recvMsg(uint8_t* data, size_t len);
 void applyDebugCommand(const char* rawCmd);
 void markWriteQueued(const VitoWiFi::Datapoint& dp, const char* label, bool isU8, float expectedFloat, uint8_t expectedU8);
+void printConsoleDebugInputs();
 
 // serial config
 #define OPTOLINK_SERIAL Serial0
@@ -62,6 +63,10 @@ inline bool isDp(const VitoWiFi::Datapoint& req, const VitoWiFi::Datapoint& dp) 
     return strcmp(req.name(), dp.name()) == 0;
 }
 
+inline uint8_t normalizeRelayOn(uint8_t raw) {
+  return (raw > 0) ? 1 : 0;
+}
+
 // Web server configuration and WiFi credentials
 #if __has_include("secrets.h")
   #include "secrets.h"  // project-local, git-ignored real credentials
@@ -69,15 +74,12 @@ inline bool isDp(const VitoWiFi::Datapoint& req, const VitoWiFi::Datapoint& dp) 
   #include "secrets.example.h" // fallback example values so CI/builds still compile
 #endif
 
-const char*     PARAM_INPUT_1 = "output";
-const char*     PARAM_INPUT_2 = "state";
 IPAddress       local_IP(192, 168, 0, 60);
 IPAddress       gateway(192, 168, 0, 1);
 IPAddress       subnet(255, 255, 255, 0);
 IPAddress       primaryDNS(192, 168, 0, 1);   //optional
 IPAddress       secondaryDNS(192, 168, 0, 1);   //optional
 AsyncWebServer    server(80);
-AsyncEventSource  events("/events");
 
 // MultiWifi object
 WiFiMulti WiFiMulti;
@@ -121,11 +123,8 @@ HAMqtt mqtt(client, device, 30);
 #include "HA_mqtt_addin.h"
 
 // other
-// Loop bookkeeping and simple runtime state
-static int     count     = 0;
-static int     eHeiz1    = 0;
-static int     eHeiz2    = 0;
-static boolean toggle    = false;
+static uint8_t eHeiz1Raw = 0;
+static uint8_t eHeiz2Raw = 0;
 // Error handling and health monitoring
 volatile uint32_t vitoErrorCount = 0;
 volatile uint32_t vitoConsecutiveErrors = 0;
@@ -138,10 +137,12 @@ static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 36000UL; // relays/pumps/comp
 static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 60000UL; // temperatures
 static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 150000UL; // setpoints/hysteresis/heating curve
 static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 7900UL; // Dfast: restart vitoDebug round every 8s
+static const uint32_t DEFAULT_EHEIZ_DEBUG_INTERVAL_MS = 10000UL; // Deheiz: restart eHeiz round every 10s
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
 VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
 VitoPollGroupState vitoDebugState  = {0, 0, 0, DEFAULT_DEBUG_INTERVAL_MS};
+VitoPollGroupState vitoEHeizDebugState  = {0, 0, 0, DEFAULT_EHEIZ_DEBUG_INTERVAL_MS};
 
 // Global VitoWiFi scheduling state:
 // - at most one in-flight request at a time
@@ -187,16 +188,26 @@ void markWriteQueued(const VitoWiFi::Datapoint& dp, const char* label, bool isU8
   writeTraceExpectedU8 = expectedU8;
 }
 
-static const uint32_t DEBUG_HELP_INTERVAL_MS = 10000UL;
 static const uint32_t DEBUG_AUTO_OFF_MS = 300000UL;
 static bool debugFastOnly = false;
 static bool debugRuntime = false;
 static bool debugDatapointLogs = false;
+static bool debugEHeizOnly = false;
 static uint32_t debugModeSinceMs = 0;
 static const uint32_t DIAG_WINDOW_MS = 600000UL; // 10 minutes
 static uint32_t diagWindowStartMs = 0;
 static uint32_t diagTimeoutCountWindow = 0;
 static uint32_t diagSanDropCountWindow = 0;
+
+inline void resetDiagWindowIfNeeded() {
+  uint32_t now = millis();
+  if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
+    diagWindowStartMs = now;
+    diagTimeoutCountWindow = 0;
+    diagSanDropCountWindow = 0;
+  }
+}
+
 static char usbConsoleCmdBuffer[32] = {0};
 static uint8_t usbConsoleCmdPos = 0;
 static const char* currentRspName = "";
@@ -333,6 +344,12 @@ VitoWiFi::Datapoint* vitoDebug[] = {
 };
 const int vitoDebugSize = sizeof(vitoDebug) / sizeof(vitoDebug[0]);
 
+VitoWiFi::Datapoint* vitoEHeizDebug[] = {
+  &dpRelEHeizStufe1,
+  &dpRelEHeizStufe2
+};
+const int vitoEHeizDebugSize = sizeof(vitoEHeizDebug) / sizeof(vitoEHeizDebug[0]);
+
 // --- per-DP timing helpers -------------------------------------
 inline void logDpFloat(const char* tag, float val, uint32_t& lastMs) {
     uint32_t now = millis();
@@ -412,12 +429,7 @@ inline void logDpMode(const char* tag, uint8_t v, const char* label, uint32_t& l
 }
 
 inline bool isSaneTemperature(const char* tag, float value) {
-  uint32_t now = millis();
-  if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
-    diagWindowStartMs = now;
-    diagTimeoutCountWindow = 0;
-    diagSanDropCountWindow = 0;
-  }
+  resetDiagWindowIfNeeded();
 
   if (!isfinite(value) || value < -50.0f || value > 120.0f) {
     diagSanDropCountWindow = diagSanDropCountWindow + 1;
@@ -568,9 +580,7 @@ void setup() {
   //setup home assistant *******
   setupHomeAssistant();
 
-  CONSOLE_SERIAL.printf("[DBG] cmds: Dfast=%s Druntime=%s (auto-off in 5 min)\n",
-    debugFastOnly ? "on" : "off",
-    debugRuntime ? "on" : "off");
+  printConsoleDebugInputs();
   
   CONSOLE_SERIAL.println(F("Setup finished..."));
 }
@@ -618,20 +628,16 @@ void myPrintRuntime() {
 }
 
 inline bool debugModeActive() {
-  return debugFastOnly || debugRuntime || debugDatapointLogs;
+  return debugFastOnly || debugRuntime || debugDatapointLogs || debugEHeizOnly;
 }
 
 void printConsoleDebugInputs() {
-  uint32_t now = millis();
-  if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
-    diagWindowStartMs = now;
-    diagTimeoutCountWindow = 0;
-    diagSanDropCountWindow = 0;
-  }
+  resetDiagWindowIfNeeded();
 
-  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Druntime=%s Ddebug=%s | 10m timeouts=%lu sanDrops=%lu (auto-off in 5 min)\n",
+  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Deheiz=%s Druntime=%s Ddebug=%s | 10m timeouts=%lu sanDrops=%lu (auto-off in 5 min)\n",
     DEVICE_SWVERSION,
     debugFastOnly ? "on" : "off",
+    debugEHeizOnly ? "on" : "off",
     debugRuntime ? "on" : "off",
     debugDatapointLogs ? "on" : "off",
     (unsigned long)diagTimeoutCountWindow,
@@ -641,6 +647,7 @@ void printConsoleDebugInputs() {
 void disableDebugModes(const char* reason) {
   bool wasActive = debugModeActive();
   debugFastOnly = false;
+  debugEHeizOnly = false;
   debugRuntime = false;
   debugDatapointLogs = false;
   debugModeSinceMs = 0;
@@ -692,6 +699,17 @@ void applyDebugCommand(const char* rawCmd) {
         debugModeSinceMs = 0;
       }
     }
+  } else if (strcmp(cmd, "Deheiz") == 0 || strcmp(cmd, "deheiz") == 0) {
+    debugEHeizOnly = !debugEHeizOnly;
+    if (debugEHeizOnly) {
+      debugModeSinceMs = millis();
+      CONSOLE_SERIAL.println("[DBG] Deheiz active: polling only dpRelEHeizStufe1/2 every 10s");
+    } else {
+      CONSOLE_SERIAL.println("[DBG] Deheiz disabled");
+      if (!debugFastOnly && !debugRuntime && !debugDatapointLogs) {
+        debugModeSinceMs = 0;
+      }
+    }
   } else if (strcmp(cmd, "Druntime") == 0 || strcmp(cmd, "druntime") == 0) {
     debugRuntime = !debugRuntime;
     if (debugRuntime) {
@@ -700,7 +718,7 @@ void applyDebugCommand(const char* rawCmd) {
     } else {
       CONSOLE_SERIAL.println("[DBG] Druntime disabled");
       if (!debugFastOnly) {
-        if (!debugDatapointLogs) {
+        if (!debugDatapointLogs && !debugEHeizOnly) {
           debugModeSinceMs = 0;
         }
       }
@@ -712,7 +730,7 @@ void applyDebugCommand(const char* rawCmd) {
       CONSOLE_SERIAL.println("[DBG] Ddebug active: datapoint response logs enabled");
     } else {
       CONSOLE_SERIAL.println("[DBG] Ddebug disabled");
-      if (!debugFastOnly && !debugRuntime) {
+      if (!debugFastOnly && !debugRuntime && !debugEHeizOnly) {
         debugModeSinceMs = 0;
       }
     }
@@ -795,7 +813,9 @@ void loop() {
 
   // Priority: fast -> medium -> slow
   if (!vitoWritePending) {
-    if (debugFastOnly) {
+    if (debugEHeizOnly) {
+      if (!queued) queued = pollVitoGroup(vitoEHeizDebugState, vitoEHeizDebug, vitoEHeizDebugSize, vitoResponseGapMs);
+    } else if (debugFastOnly) {
       if (!queued) queued = pollVitoGroup(vitoDebugState, vitoDebug, vitoDebugSize, vitoResponseGapMs);
     } else {
       if (!queued) queued = pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   vitoResponseGapMs);
@@ -806,8 +826,6 @@ void loop() {
 
 
   EVERY_N_SECONDS(13) {
-    count++;
-    toggle = !toggle;
     device.publishAvailability();
   }
 
@@ -958,16 +976,36 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
       handled = true;
 
     } else if (isDp(request, dpRelEHeizStufe1)) {
-        eHeiz1 = static_cast<uint8_t>(value);
-        logDpUint("RelEHeizStufe1 (raw)", eHeiz1, lastRelEHeiz1Ms);
+        eHeiz1Raw = static_cast<uint8_t>(value);
+        logDpUint("RelEHeizStufe1 (raw)", eHeiz1Raw, lastRelEHeiz1Ms);
       handled = true;
 
     } else if (isDp(request, dpRelEHeizStufe2)) {
-        uint8_t v2 = value;
-        eHeiz2 = eHeiz1 + (2 * v2);
-        RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
-        HVACwaermepumpe.setAuxState(eHeiz2 != 0);
-        logDpUint("RelEHeizStufe2 (combined)", eHeiz2, lastRelEHeiz2Ms);
+        eHeiz2Raw = static_cast<uint8_t>(value);
+        uint8_t eHeizCombined = normalizeRelayOn(eHeiz1Raw) + normalizeRelayOn(eHeiz2Raw);
+        RelEHeizStufeSens.setValue(eHeizCombined);
+        HVACwaermepumpe.setAuxState(eHeizCombined != 0);
+        uint32_t now = millis();
+        uint32_t dt  = lastRelEHeiz2Ms ? (now - lastRelEHeiz2Ms) : 0;
+        lastRelEHeiz2Ms = now;
+        if (debugDatapointLogs) {
+          CONSOLE_SERIAL.print("[RSP] ");
+          CONSOLE_SERIAL.print(currentRspName);
+          CONSOLE_SERIAL.print(" req=");
+          CONSOLE_SERIAL.print(currentRspReqMs, 3);
+          CONSOLE_SERIAL.print(" ms | RelEHeizStufe2: combined=");
+          CONSOLE_SERIAL.print(eHeizCombined);
+          CONSOLE_SERIAL.print(" raw1=");
+          CONSOLE_SERIAL.print(eHeiz1Raw);
+          CONSOLE_SERIAL.print(" raw2=");
+          CONSOLE_SERIAL.print(eHeiz2Raw);
+          if (dt) {
+            CONSOLE_SERIAL.print(" (Δt=");
+            CONSOLE_SERIAL.print(dt);
+            CONSOLE_SERIAL.print(" ms)");
+          }
+          CONSOLE_SERIAL.println();
+        }
       handled = true;
 
     } else if (isDp(request, dpHeizkreispumpe)) {
@@ -1101,6 +1139,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
   }
 
   uint32_t dtReqUs = 0;
+  const VitoWiFi::Datapoint* inFlightBeforeClear = vitoInFlightDp;
   if (vitoInFlightDp != nullptr && isDp(request, *vitoInFlightDp) && vitoInFlightQueuedUs != 0) {
     dtReqUs = nowUs - vitoInFlightQueuedUs;
   }
@@ -1122,9 +1161,9 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
       dpMatch ? "yes" : "no",
       (float)dtReqUs / 1000.0f);
 
-    if (error == VitoWiFi::OptolinkResult::TIMEOUT && vitoInFlightDp != nullptr) {
+    if (error == VitoWiFi::OptolinkResult::TIMEOUT && inFlightBeforeClear != nullptr) {
       writeVerifyPending = true;
-      writeVerifyDp = vitoInFlightDp;
+      writeVerifyDp = inFlightBeforeClear;
       writeVerifyLabel = writeTraceLabel;
       writeVerifyIsU8 = writeTraceIsU8;
       writeVerifyExpectedFloat = writeTraceExpectedFloat;
@@ -1133,12 +1172,7 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
     }
   }
   if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
-    uint32_t now = millis();
-    if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
-      diagWindowStartMs = now;
-      diagTimeoutCountWindow = 0;
-      diagSanDropCountWindow = 0;
-    }
+    resetDiagWindowIfNeeded();
     diagTimeoutCountWindow = diagTimeoutCountWindow + 1;
     CONSOLE_SERIAL.println("timeout");
   } else if (error == VitoWiFi::OptolinkResult::LENGTH) {
