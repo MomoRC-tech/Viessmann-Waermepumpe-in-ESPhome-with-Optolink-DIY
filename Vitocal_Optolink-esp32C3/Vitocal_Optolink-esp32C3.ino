@@ -64,7 +64,7 @@ inline bool isDp(const VitoWiFi::Datapoint& req, const VitoWiFi::Datapoint& dp) 
 }
 
 inline uint8_t normalizeRelayOn(uint8_t raw) {
-  return (raw > 0) ? 1 : 0;
+  return raw & 0x01;
 }
 
 // Web server configuration and WiFi credentials
@@ -982,9 +982,11 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
     } else if (isDp(request, dpRelEHeizStufe2)) {
         eHeiz2Raw = static_cast<uint8_t>(value);
-        uint8_t eHeizCombined = normalizeRelayOn(eHeiz1Raw) + normalizeRelayOn(eHeiz2Raw);
-        RelEHeizStufeSens.setValue(eHeizCombined);
-        HVACwaermepumpe.setAuxState(eHeizCombined != 0);
+      uint8_t eHeiz1On = normalizeRelayOn(eHeiz1Raw);
+      uint8_t eHeiz2On = normalizeRelayOn(eHeiz2Raw);
+      uint8_t eHeizStageCode = (eHeiz1On ? 1 : 0) | (eHeiz2On ? 2 : 0);
+        RelEHeizStufeSens.setValue(eHeizStageCode);
+        HVACwaermepumpe.setAuxState(eHeizStageCode != 0);
         uint32_t now = millis();
         uint32_t dt  = lastRelEHeiz2Ms ? (now - lastRelEHeiz2Ms) : 0;
         lastRelEHeiz2Ms = now;
@@ -993,12 +995,16 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
           CONSOLE_SERIAL.print(currentRspName);
           CONSOLE_SERIAL.print(" req=");
           CONSOLE_SERIAL.print(currentRspReqMs, 3);
-          CONSOLE_SERIAL.print(" ms | RelEHeizStufe2: combined=");
-          CONSOLE_SERIAL.print(eHeizCombined);
+          CONSOLE_SERIAL.print(" ms | RelEHeizStufe2: stageCode=");
+          CONSOLE_SERIAL.print(eHeizStageCode);
           CONSOLE_SERIAL.print(" raw1=");
           CONSOLE_SERIAL.print(eHeiz1Raw);
           CONSOLE_SERIAL.print(" raw2=");
           CONSOLE_SERIAL.print(eHeiz2Raw);
+          CONSOLE_SERIAL.print(" on1=");
+          CONSOLE_SERIAL.print(eHeiz1On);
+          CONSOLE_SERIAL.print(" on2=");
+          CONSOLE_SERIAL.print(eHeiz2On);
           if (dt) {
             CONSOLE_SERIAL.print(" (Δt=");
             CONSOLE_SERIAL.print(dt);
