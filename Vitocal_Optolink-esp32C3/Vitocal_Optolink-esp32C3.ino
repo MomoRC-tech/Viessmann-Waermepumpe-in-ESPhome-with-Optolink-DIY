@@ -167,9 +167,12 @@ static const uint32_t DEBUG_HELP_INTERVAL_MS = 10000UL;
 static const uint32_t DEBUG_AUTO_OFF_MS = 300000UL;
 static bool debugFastOnly = false;
 static bool debugRuntime = false;
+static bool debugDatapointLogs = false;
 static uint32_t debugModeSinceMs = 0;
 static char usbConsoleCmdBuffer[32] = {0};
 static uint8_t usbConsoleCmdPos = 0;
+static const char* currentRspName = "";
+static float currentRspReqMs = 0.0f;
 
 // labels
 static const char* const operationModeLabels[] = {
@@ -308,8 +311,17 @@ inline void logDpFloat(const char* tag, float val, uint32_t& lastMs) {
     uint32_t dt  = lastMs ? (now - lastMs) : 0;
     lastMs = now;
 
-    CONSOLE_SERIAL.print(tag);
-    CONSOLE_SERIAL.print(": ");
+  if (!debugDatapointLogs) {
+    return;
+  }
+
+  CONSOLE_SERIAL.print("[RSP] ");
+  CONSOLE_SERIAL.print(currentRspName);
+  CONSOLE_SERIAL.print(" req=");
+  CONSOLE_SERIAL.print(currentRspReqMs, 3);
+  CONSOLE_SERIAL.print(" ms | ");
+  CONSOLE_SERIAL.print(tag);
+  CONSOLE_SERIAL.print(": ");
     CONSOLE_SERIAL.print(val, 1);
     if (dt) {
         CONSOLE_SERIAL.print(" (Δt=");
@@ -324,8 +336,17 @@ inline void logDpUint(const char* tag, uint8_t v, uint32_t& lastMs) {
     uint32_t dt  = lastMs ? (now - lastMs) : 0;
     lastMs = now;
 
-    CONSOLE_SERIAL.print(tag);
-    CONSOLE_SERIAL.print(": ");
+  if (!debugDatapointLogs) {
+    return;
+  }
+
+  CONSOLE_SERIAL.print("[RSP] ");
+  CONSOLE_SERIAL.print(currentRspName);
+  CONSOLE_SERIAL.print(" req=");
+  CONSOLE_SERIAL.print(currentRspReqMs, 3);
+  CONSOLE_SERIAL.print(" ms | ");
+  CONSOLE_SERIAL.print(tag);
+  CONSOLE_SERIAL.print(": ");
     CONSOLE_SERIAL.print(v);
     if (dt) {
         CONSOLE_SERIAL.print(" (Δt=");
@@ -340,8 +361,17 @@ inline void logDpMode(const char* tag, uint8_t v, const char* label, uint32_t& l
     uint32_t dt  = lastMs ? (now - lastMs) : 0;
     lastMs = now;
 
-    CONSOLE_SERIAL.print(tag);
-    CONSOLE_SERIAL.print(": ");
+  if (!debugDatapointLogs) {
+    return;
+  }
+
+  CONSOLE_SERIAL.print("[RSP] ");
+  CONSOLE_SERIAL.print(currentRspName);
+  CONSOLE_SERIAL.print(" req=");
+  CONSOLE_SERIAL.print(currentRspReqMs, 3);
+  CONSOLE_SERIAL.print(" ms | ");
+  CONSOLE_SERIAL.print(tag);
+  CONSOLE_SERIAL.print(": ");
     CONSOLE_SERIAL.print(v);
     CONSOLE_SERIAL.print(" -> ");
     CONSOLE_SERIAL.print(label);
@@ -544,20 +574,22 @@ void myPrintRuntime() {
 }
 
 inline bool debugModeActive() {
-  return debugFastOnly || debugRuntime;
+  return debugFastOnly || debugRuntime || debugDatapointLogs;
 }
 
 void printConsoleDebugInputs() {
-  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Druntime=%s (auto-off in 5 min)\n",
+  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Druntime=%s Ddebug=%s (auto-off in 5 min)\n",
     DEVICE_SWVERSION,
     debugFastOnly ? "on" : "off",
-    debugRuntime ? "on" : "off");
+    debugRuntime ? "on" : "off",
+    debugDatapointLogs ? "on" : "off");
 }
 
 void disableDebugModes(const char* reason) {
   bool wasActive = debugModeActive();
   debugFastOnly = false;
   debugRuntime = false;
+  debugDatapointLogs = false;
   debugModeSinceMs = 0;
 
   if (wasActive) {
@@ -615,6 +647,19 @@ void applyDebugCommand(const char* rawCmd) {
     } else {
       CONSOLE_SERIAL.println("[DBG] Druntime disabled");
       if (!debugFastOnly) {
+        if (!debugDatapointLogs) {
+          debugModeSinceMs = 0;
+        }
+      }
+    }
+  } else if (strcmp(cmd, "Ddebug") == 0 || strcmp(cmd, "ddebug") == 0) {
+    debugDatapointLogs = !debugDatapointLogs;
+    if (debugDatapointLogs) {
+      debugModeSinceMs = millis();
+      CONSOLE_SERIAL.println("[DBG] Ddebug active: datapoint response logs enabled");
+    } else {
+      CONSOLE_SERIAL.println("[DBG] Ddebug disabled");
+      if (!debugFastOnly && !debugRuntime) {
         debugModeSinceMs = 0;
       }
     }
@@ -710,7 +755,7 @@ void loop() {
     count++;
     toggle = !toggle;
     device.publishAvailability();
-    CONSOLE_SERIAL.println("### VitoWiFi cycle read running");
+    CONSOLE_SERIAL.println("[CYCLE] VitoWiFi read running");
   }
 
   EVERY_N_SECONDS(30) {
@@ -720,7 +765,6 @@ void loop() {
   }
 
   EVERY_N_SECONDS(10) {
-    CONSOLE_SERIAL.println("### printConsoleDebugInputs");
     printConsoleDebugInputs();
   }
 
@@ -748,8 +792,9 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
     vitoBusy = false;
     uint32_t nowMs = millis();
   uint32_t nowUs = micros();
-    vitoLastResponseMs = nowMs;
-  if (vitoWritePending && !pendingWriteActive) {
+  bool writeResponse = (vitoWritePending && !pendingWriteActive);
+  vitoLastResponseMs = nowMs;
+  if (writeResponse) {
     vitoWritePending = false;
   }
 
@@ -776,42 +821,50 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
     VitoWiFi::VariantValue value = request.decode(data, length);
     const char* name = request.name();
+    currentRspName = name;
+    currentRspReqMs = (float)dtReqUs / 1000.0f;
 
-    CONSOLE_SERIAL.print("onVitoResponse for ");
-    CONSOLE_SERIAL.print(name);
-  CONSOLE_SERIAL.print(" (Δreq=");
-  CONSOLE_SERIAL.print((float)dtReqUs / 1000.0f, 3);
-  CONSOLE_SERIAL.println(" ms)");
+    if (writeResponse) {
+      CONSOLE_SERIAL.printf("[WRT] success: %s (Δreq=%.3f ms)\n", name, currentRspReqMs);
+    }
+
+    bool handled = false;
 
     if (isDp(request, dpTempOutside)) {
         float temp = value;
         AussenTempSens.setValue(temp);
         logDpFloat("tmpAu (AussenTemp)", temp, lastTempOutsideMs);
+      handled = true;
 
     } else if (isDp(request, dpWWoben)) {
         float temp = value;
         WWtempObenSens.setValue(temp);
         logDpFloat("WWo (WWtempOben)", temp, lastWWobenMs);
+      handled = true;
 
     } else if (isDp(request, dpVorlaufSoll)) {
         float temp = value;
         VorlaufTempSetSens.setValue(temp);
         logDpFloat("VorlaufSoll", temp, lastVorlaufSollMs);
+      handled = true;
 
     } else if (isDp(request, dpVorlaufIst)) {
         float temp = value;
         VorlaufTempSens.setValue(temp);
         HVACwaermepumpe.setCurrentTemperature(temp);
         logDpFloat("VorlaufIst", temp, lastVorlaufIstMs);
+      handled = true;
 
     } else if (isDp(request, dpRuecklauf)) {
         float temp = value;
         RuecklaufTempSens.setValue(temp);
         logDpFloat("Ruecklauf", temp, lastRuecklaufMs);
+      handled = true;
 
     } else if (isDp(request, dpRelEHeizStufe1)) {
         eHeiz1 = static_cast<uint8_t>(value);
         logDpUint("RelEHeizStufe1 (raw)", eHeiz1, lastRelEHeiz1Ms);
+      handled = true;
 
     } else if (isDp(request, dpRelEHeizStufe2)) {
         uint8_t v2 = value;
@@ -819,38 +872,45 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
         RelEHeizStufeSens.setValue(static_cast<uint8_t>(eHeiz2));
         HVACwaermepumpe.setAuxState(eHeiz2 != 0);
         logDpUint("RelEHeizStufe2 (combined)", eHeiz2, lastRelEHeiz2Ms);
+      handled = true;
 
     } else if (isDp(request, dpHeizkreispumpe)) {
         uint8_t v = value;
         heizkreispumpeSens.setState(v);
         logDpUint("Heizkreispumpe", v, lastHeizkreispumpeMs);
+      handled = true;
 
     } else if (isDp(request, dpWWZirkPumpe)) {
         uint8_t v = value;
         WWzirkulationspumpeSens.setState(v);
         logDpUint("WWZirkulationspumpe", v, lastWWZirkPumpeMs);
+      handled = true;
 
     } else if (isDp(request, dpRelVerdichter)) {
         uint8_t v = value;
         RelVerdichterSens.setState(v);
         HVACwaermepumpe.setMode(v ? HAHVAC::HeatMode : HAHVAC::OffMode);
         logDpUint("RelVerdichter", v, lastRelVerdichterMs);
+      handled = true;
 
     } else if (isDp(request, dpRelPrimaerquelle)) {
         uint8_t v = value;
         RelPrimaerquelleSens.setState(v);
         logDpUint("RelPrimaerquelle", v, lastRelPrimaerMs);
+      handled = true;
 
     } else if (isDp(request, dpRelSekundaerPumpe)) {
         uint8_t v = value;
         RelSekundaerPumpeSens.setState(v);
         logDpUint("RelSekundaerPumpe", v, lastRelSekundaerMs);
+      handled = true;
 
     } else if (isDp(request, dpVentilHeizenWW)) {
         uint8_t v = value;
         const char* text = v ? "Warmwasser" : "Heizen";
         ventilHeizenWWSens.setValue(text);
         logDpMode("ventilHeizenWW", v, text, lastVentilHeizenWWMs);
+      handled = true;
 
     } else if (isDp(request, dpOperationMode)) {
         uint8_t v = value;
@@ -859,6 +919,7 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
         );
         operationmodeSens.setValue(label);
         logDpMode("operationmode", v, label, lastOperationModeMs);
+      handled = true;
 
     } else if (isDp(request, dpManualMode)) {
         uint8_t v = value;
@@ -868,42 +929,54 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
         manualmodeSens.setValue(label);
         selectManualMode.setState(v);
         logDpMode("manualmode", v, label, lastManualModeMs);
+      handled = true;
 
     } else if (isDp(request, dpTempRaumSoll)) {
         float t = value;
         RaumSollTempSens.setState(t);
         HVACwaermepumpe.setTargetTemperature(t);
         logDpFloat("RaumSollTemp", t, lastRaumSollMs);
+      handled = true;
 
     } else if (isDp(request, dpTempRaumSollRed)) {
         float t = value;
         RaumSollRedSens.setState(t);
         logDpFloat("RaumSollRed", t, lastRaumSollRedMs);
+      handled = true;
 
     } else if (isDp(request, dpTempWWSoll)) {
         float t = value;
         WWtempSollSens.setState(t);
         logDpFloat("WWtempSoll", t, lastWWSollMs);
+      handled = true;
 
     } else if (isDp(request, dpTempWWSoll2)) {
         float t = value;
         WWtempSoll2Sens.setState(t);
         logDpFloat("WWtempSoll2", t, lastWWSoll2Ms);
+      handled = true;
 
     } else if (isDp(request, dpTempHystWWSoll)) {
         float t = value;
         HystWWsollSens.setState(t);
         logDpFloat("TempHystWWSoll", t, lastHystWWSollMs);
+      handled = true;
 
     } else if (isDp(request, dpTempHKniveau)) {
         float t = value;
         HKniveauSens.setState(t);
         logDpFloat("TempHKniveau", t, lastHKniveauMs);
+      handled = true;
 
     } else if (isDp(request, dpTempHKNeigung)) {
         float t = value;
         HKneigungSens.setState(t);
         logDpFloat("TempHKNeigung", t, lastHKneigungMs);
+      handled = true;
+    }
+
+    if (!handled && debugDatapointLogs) {
+      CONSOLE_SERIAL.printf("[RSP] %s req=%.3f ms\n", name, currentRspReqMs);
     }
 }
 
@@ -912,7 +985,8 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
   vitoBusy = false;
   uint32_t nowUs = micros();
   vitoLastResponseMs = millis();
-  if (vitoWritePending && !pendingWriteActive) {
+  bool writeResponse = (vitoWritePending && !pendingWriteActive);
+  if (writeResponse) {
     vitoWritePending = false;
   }
 
@@ -923,12 +997,15 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
   vitoInFlightDp = nullptr;
   vitoInFlightQueuedUs = 0;
 
-  // Record error diagnostics in the same style as upstream examples.
+  CONSOLE_SERIAL.print("[ERR] ");
   CONSOLE_SERIAL.print("Datapoint \"");
   CONSOLE_SERIAL.print(request.name());
   CONSOLE_SERIAL.print("\" error (Δreq=");
   CONSOLE_SERIAL.print((float)dtReqUs / 1000.0f, 3);
   CONSOLE_SERIAL.print(" ms): ");
+  if (writeResponse) {
+    CONSOLE_SERIAL.printf("\n[WRT] failed: %s (Δreq=%.3f ms)\n", request.name(), (float)dtReqUs / 1000.0f);
+  }
   if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
     CONSOLE_SERIAL.println("timeout");
   } else if (error == VitoWiFi::OptolinkResult::LENGTH) {

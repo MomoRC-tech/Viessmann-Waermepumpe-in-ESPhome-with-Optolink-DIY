@@ -325,10 +325,12 @@ extern VitoWiFi::Datapoint setTempWWsoll2;
 extern VitoWiFi::Datapoint setManualMode;
 
 static bool queueOrWriteFloat(VitoWiFi::Datapoint& dp, float value, const char* label) {
+    CONSOLE_SERIAL.printf("[WRT] request: %s=%.1f\n", label, value);
     if (vitoWIFI.write(dp, value)) {
         vitoWritePending = true;
         pendingWriteActive = false;
         pendingWriteDp = nullptr;
+        CONSOLE_SERIAL.printf("[WRT] queued: %s=%.1f\n", label, value);
         return true;
     }
 
@@ -339,15 +341,17 @@ static bool queueOrWriteFloat(VitoWiFi::Datapoint& dp, float value, const char* 
     pendingWriteActive = true;
     pendingWriteNextTryMs = millis() + 100UL;
     vitoWritePending = true;
-    CONSOLE_SERIAL.printf("[VITO] Deferred retry armed: %s\n", label);
+    CONSOLE_SERIAL.printf("[WRT] deferred: %s=%.1f (retry armed)\n", label, value);
     return false;
 }
 
 static bool queueOrWriteU8(VitoWiFi::Datapoint& dp, uint8_t value, const char* label) {
+    CONSOLE_SERIAL.printf("[WRT] request: %s=%u\n", label, (unsigned)value);
     if (vitoWIFI.write(dp, value)) {
         vitoWritePending = true;
         pendingWriteActive = false;
         pendingWriteDp = nullptr;
+        CONSOLE_SERIAL.printf("[WRT] queued: %s=%u\n", label, (unsigned)value);
         return true;
     }
 
@@ -358,7 +362,7 @@ static bool queueOrWriteU8(VitoWiFi::Datapoint& dp, uint8_t value, const char* l
     pendingWriteActive = true;
     pendingWriteNextTryMs = millis() + 100UL;
     vitoWritePending = true;
-    CONSOLE_SERIAL.printf("[VITO] Deferred retry armed: %s\n", label);
+    CONSOLE_SERIAL.printf("[WRT] deferred: %s=%u (retry armed)\n", label, (unsigned)value);
     return false;
 }
 
