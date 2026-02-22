@@ -132,10 +132,10 @@ static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 
 // Default group intervals tuned for stability vs. throughput
-static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 20000UL; // relays/pumps/compressor/status
-static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 40000UL; // temperatures
-static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 100000UL; // setpoints/hysteresis/heating curve
-static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 8000UL; // Dfast: restart vitoDebug round every 8s
+static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 27000UL; // relays/pumps/compressor/status
+static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 41000UL; // temperatures
+static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 103000UL; // setpoints/hysteresis/heating curve
+static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 7900UL; // Dfast: restart vitoDebug round every 8s
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
 VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
