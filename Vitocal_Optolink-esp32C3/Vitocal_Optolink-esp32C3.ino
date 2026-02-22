@@ -132,9 +132,9 @@ static const uint32_t vitoErrorWindowMs  = 60000; // window for total errors
 uint32_t vitoErrorWindowStartMs = 0;
 
 // Default group intervals tuned for stability vs. throughput
-static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 40000UL; // relays/pumps/compressor/status
-static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 64000UL; // temperatures
-static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 180000UL; // setpoints/hysteresis/heating curve
+static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 20000UL; // relays/pumps/compressor/status
+static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 40000UL; // temperatures
+static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 100000UL; // setpoints/hysteresis/heating curve
 static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 8000UL; // Dfast: restart vitoDebug round every 8s
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
@@ -152,6 +152,8 @@ static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 volatile bool   vitoWritePending   = false; // true when a write has been queued
 static bool     vitoBusy           = false; // true while we wait for a response
 static uint32_t vitoLastResponseMs = 0;     // millis() when last response/error arrived
+static const VitoWiFi::Datapoint* vitoInFlightDp = nullptr;
+static uint32_t vitoInFlightQueuedUs = 0;
 
 volatile bool pendingWriteActive = false;
 volatile bool pendingWriteIsU8 = false;
@@ -398,6 +400,8 @@ bool pollVitoGroup(
         // We successfully queued one request.
         vitoBusy = true;
         state.lastRequestMs = now;
+      vitoInFlightDp = dp;
+      vitoInFlightQueuedUs = micros();
 
         // remember when this particular DP was requested
         for (size_t i = 0; i < dpTimingCount; ++i) {
@@ -743,30 +747,41 @@ void loop() {
 void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request) {
     vitoBusy = false;
     uint32_t nowMs = millis();
+  uint32_t nowUs = micros();
     vitoLastResponseMs = nowMs;
   if (vitoWritePending && !pendingWriteActive) {
     vitoWritePending = false;
   }
 
     // compute time between request and this response
-    uint32_t dtReqMs = 0;
+  uint32_t dtReqUs = 0;
+  if (vitoInFlightDp != nullptr && isDp(request, *vitoInFlightDp) && vitoInFlightQueuedUs != 0) {
+    dtReqUs = nowUs - vitoInFlightQueuedUs;
+  }
+
+  // Fallback to existing ms-based per-datapoint timing map if needed.
+  if (dtReqUs == 0) {
     for (size_t i = 0; i < dpTimingCount; ++i) {
-        if (isDp(request, *dpTiming[i].dp)) {
-            if (dpTiming[i].lastRequestMs != 0) {
-                dtReqMs = nowMs - dpTiming[i].lastRequestMs;
-            }
-            break;
+      if (isDp(request, *dpTiming[i].dp)) {
+        if (dpTiming[i].lastRequestMs != 0) {
+          dtReqUs = (nowMs - dpTiming[i].lastRequestMs) * 1000UL;
         }
+        break;
+      }
     }
+  }
+
+  vitoInFlightDp = nullptr;
+  vitoInFlightQueuedUs = 0;
 
     VitoWiFi::VariantValue value = request.decode(data, length);
     const char* name = request.name();
 
     CONSOLE_SERIAL.print("onVitoResponse for ");
     CONSOLE_SERIAL.print(name);
-    CONSOLE_SERIAL.print(" (Δreq=");
-    CONSOLE_SERIAL.print(dtReqMs);
-    CONSOLE_SERIAL.println(" ms)");
+  CONSOLE_SERIAL.print(" (Δreq=");
+  CONSOLE_SERIAL.print((float)dtReqUs / 1000.0f, 3);
+  CONSOLE_SERIAL.println(" ms)");
 
     if (isDp(request, dpTempOutside)) {
         float temp = value;
@@ -895,15 +910,25 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
 
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request) {
   vitoBusy = false;
+  uint32_t nowUs = micros();
   vitoLastResponseMs = millis();
   if (vitoWritePending && !pendingWriteActive) {
     vitoWritePending = false;
   }
 
+  uint32_t dtReqUs = 0;
+  if (vitoInFlightDp != nullptr && isDp(request, *vitoInFlightDp) && vitoInFlightQueuedUs != 0) {
+    dtReqUs = nowUs - vitoInFlightQueuedUs;
+  }
+  vitoInFlightDp = nullptr;
+  vitoInFlightQueuedUs = 0;
+
   // Record error diagnostics in the same style as upstream examples.
   CONSOLE_SERIAL.print("Datapoint \"");
   CONSOLE_SERIAL.print(request.name());
-  CONSOLE_SERIAL.print("\" error: ");
+  CONSOLE_SERIAL.print("\" error (Δreq=");
+  CONSOLE_SERIAL.print((float)dtReqUs / 1000.0f, 3);
+  CONSOLE_SERIAL.print(" ms): ");
   if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
     CONSOLE_SERIAL.println("timeout");
   } else if (error == VitoWiFi::OptolinkResult::LENGTH) {
