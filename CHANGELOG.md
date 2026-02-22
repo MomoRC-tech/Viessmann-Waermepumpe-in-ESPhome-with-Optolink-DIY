@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented here.
 
+## [v0.4.2] - 2026-02-22
+- EHeiz decoding (VS1): use bit-based relay normalization (`raw & 0x01`) so `raw=2` is treated as OFF
+- EHeiz stage publishing: switch from summed stage count to stage code `0..3` (OFF, Stage1, Stage2, Stage3)
+- EHeiz diagnostics: extend logs with `raw1/raw2`, decoded `on1/on2`, and `stageCode`
+
 ## [v0.4.1] - 2026-02-21
 - Optimize main loop timing: process VitoWiFi responses and MQTT publishes first
 - Reorder loop operations for better sensor update timing and accuracy
