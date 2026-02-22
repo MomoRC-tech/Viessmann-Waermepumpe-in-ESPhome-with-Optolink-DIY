@@ -135,7 +135,7 @@ uint32_t vitoErrorWindowStartMs = 0;
 static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 40000UL; // relays/pumps/compressor/status
 static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 64000UL; // temperatures
 static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 180000UL; // setpoints/hysteresis/heating curve
-static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 0UL;
+static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 8000UL; // Dfast: restart vitoDebug round every 8s
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
 VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
@@ -688,7 +688,7 @@ void loop() {
     count++;
     toggle = !toggle;
     device.publishAvailability();
-    CONSOLE_SERIAL.println("VitoWiFi cycle read running");
+    CONSOLE_SERIAL.println("### VitoWiFi cycle read running");
   }
 
   EVERY_N_SECONDS(30) {
@@ -698,6 +698,7 @@ void loop() {
   }
 
   EVERY_N_SECONDS(10) {
+    CONSOLE_SERIAL.println("### printConsoleDebugInputs");
     printConsoleDebugInputs();
   }
 
