@@ -589,13 +589,27 @@ void applyDebugCommand(const char* rawCmd) {
   cmd[len] = '\0';
 
   if (strcmp(cmd, "Dfast") == 0 || strcmp(cmd, "dfast") == 0) {
-    debugFastOnly = true;
-    debugModeSinceMs = millis();
-    CONSOLE_SERIAL.println("[DBG] Dfast active: polling only vitoDebug");
+    debugFastOnly = !debugFastOnly;
+    if (debugFastOnly) {
+      debugModeSinceMs = millis();
+      CONSOLE_SERIAL.println("[DBG] Dfast active: polling only vitoDebug");
+    } else {
+      CONSOLE_SERIAL.println("[DBG] Dfast disabled");
+      if (!debugRuntime) {
+        debugModeSinceMs = 0;
+      }
+    }
   } else if (strcmp(cmd, "Druntime") == 0 || strcmp(cmd, "druntime") == 0) {
-    debugRuntime = true;
-    debugModeSinceMs = millis();
-    CONSOLE_SERIAL.println("[DBG] Druntime active: runtime measurement output enabled");
+    debugRuntime = !debugRuntime;
+    if (debugRuntime) {
+      debugModeSinceMs = millis();
+      CONSOLE_SERIAL.println("[DBG] Druntime active: runtime measurement output enabled");
+    } else {
+      CONSOLE_SERIAL.println("[DBG] Druntime disabled");
+      if (!debugFastOnly) {
+        debugModeSinceMs = 0;
+      }
+    }
   } else {
     CONSOLE_SERIAL.print("[DBG] unknown input: ");
     CONSOLE_SERIAL.println(cmd);
