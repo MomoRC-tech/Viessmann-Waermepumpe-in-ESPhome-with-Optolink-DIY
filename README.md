@@ -91,6 +91,14 @@ Notes:
 - `Druntime`: print loop runtime stats every 2 seconds.
 - `Ddebug`: enable detailed per-datapoint `[RSP]` logs.
 
+For `Deheiz`/`Ddebug` output, electric heater values are logged as `raw1/raw2`, decoded `on1/on2` (LSB-based), and `stageCode`.
+
+`stageCode` mapping (VS1):
+- `0`: OFF (`raw1=2`, `raw2=2`)
+- `1`: Stage 1 (~2.9 kW, `raw1=1`, `raw2=2`)
+- `2`: Stage 2 (~5.8 kW, `raw1=2`, `raw2=1`)
+- `3`: Stage 3 (~8.8 kW, `raw1=1`, `raw2=1`)
+
 All debug modes auto-disable after 5 minutes.
 
 ### Communication Mechanism: Reading and Writing
@@ -209,7 +217,7 @@ Note: Home Assistant will display a human-friendly name (e.g. “Aussentemperatu
 | `wp_VorlaufSoll` | sensor | Heating flow temperature setpoint (°C). |
 | `wp_Vorlauf` | sensor | Heating flow temperature actual (°C). |
 | `wp_Ruecklauf` | sensor | Heating return temperature (°C). |
-| `wp_EHeizstufe` | sensor | Electric heater stage (integer). |
+| `wp_EHeizstufe` | sensor | Electric heater stage code (0=OFF, 1=Stage1, 2=Stage2, 3=Stage3). |
 | `wp_Heizkreispumpe` | binary_sensor | Heating circuit pump running. |
 | `wp_WWZirkulation` | binary_sensor | Hot water circulation pump running. |
 | `wp_VentilHeizenWW` | sensor | Valve state “heating vs DHW” (text). |
