@@ -193,6 +193,10 @@ static bool debugFastOnly = false;
 static bool debugRuntime = false;
 static bool debugDatapointLogs = false;
 static uint32_t debugModeSinceMs = 0;
+static const uint32_t DIAG_WINDOW_MS = 600000UL; // 10 minutes
+static uint32_t diagWindowStartMs = 0;
+static uint32_t diagTimeoutCountWindow = 0;
+static uint32_t diagSanDropCountWindow = 0;
 static char usbConsoleCmdBuffer[32] = {0};
 static uint8_t usbConsoleCmdPos = 0;
 static const char* currentRspName = "";
@@ -408,7 +412,15 @@ inline void logDpMode(const char* tag, uint8_t v, const char* label, uint32_t& l
 }
 
 inline bool isSaneTemperature(const char* tag, float value) {
+  uint32_t now = millis();
+  if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
+    diagWindowStartMs = now;
+    diagTimeoutCountWindow = 0;
+    diagSanDropCountWindow = 0;
+  }
+
   if (!isfinite(value) || value < -50.0f || value > 120.0f) {
+    diagSanDropCountWindow = diagSanDropCountWindow + 1;
     CONSOLE_SERIAL.printf("[SAN] drop %s: %.1f (out of range)\n", tag, value);
     return false;
   }
@@ -610,11 +622,20 @@ inline bool debugModeActive() {
 }
 
 void printConsoleDebugInputs() {
-  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Druntime=%s Ddebug=%s (auto-off in 5 min)\n",
+  uint32_t now = millis();
+  if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
+    diagWindowStartMs = now;
+    diagTimeoutCountWindow = 0;
+    diagSanDropCountWindow = 0;
+  }
+
+  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Druntime=%s Ddebug=%s | 10m timeouts=%lu sanDrops=%lu (auto-off in 5 min)\n",
     DEVICE_SWVERSION,
     debugFastOnly ? "on" : "off",
     debugRuntime ? "on" : "off",
-    debugDatapointLogs ? "on" : "off");
+    debugDatapointLogs ? "on" : "off",
+    (unsigned long)diagTimeoutCountWindow,
+    (unsigned long)diagSanDropCountWindow);
 }
 
 void disableDebugModes(const char* reason) {
@@ -1112,6 +1133,13 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
     }
   }
   if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
+    uint32_t now = millis();
+    if (diagWindowStartMs == 0 || (now - diagWindowStartMs) > DIAG_WINDOW_MS) {
+      diagWindowStartMs = now;
+      diagTimeoutCountWindow = 0;
+      diagSanDropCountWindow = 0;
+    }
+    diagTimeoutCountWindow = diagTimeoutCountWindow + 1;
     CONSOLE_SERIAL.println("timeout");
   } else if (error == VitoWiFi::OptolinkResult::LENGTH) {
     CONSOLE_SERIAL.println("length");
