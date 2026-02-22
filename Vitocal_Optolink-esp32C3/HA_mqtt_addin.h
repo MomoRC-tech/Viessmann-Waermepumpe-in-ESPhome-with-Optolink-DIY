@@ -323,6 +323,7 @@ extern VitoWiFi::Datapoint setTempHKniveau;
 extern VitoWiFi::Datapoint setTempWWsoll;
 extern VitoWiFi::Datapoint setTempWWsoll2;
 extern VitoWiFi::Datapoint setManualMode;
+void markWriteQueued(const VitoWiFi::Datapoint& dp, const char* label, bool isU8, float expectedFloat, uint8_t expectedU8);
 
 static bool queueOrWriteFloat(VitoWiFi::Datapoint& dp, float value, const char* label) {
     CONSOLE_SERIAL.printf("[WRT] request: %s=%.1f\n", label, value);
@@ -330,6 +331,7 @@ static bool queueOrWriteFloat(VitoWiFi::Datapoint& dp, float value, const char* 
         vitoWritePending = true;
         pendingWriteActive = false;
         pendingWriteDp = nullptr;
+        markWriteQueued(dp, label, false, value, 0);
         CONSOLE_SERIAL.printf("[WRT] queued: %s=%.1f\n", label, value);
         return true;
     }
@@ -351,6 +353,7 @@ static bool queueOrWriteU8(VitoWiFi::Datapoint& dp, uint8_t value, const char* l
         vitoWritePending = true;
         pendingWriteActive = false;
         pendingWriteDp = nullptr;
+        markWriteQueued(dp, label, true, 0.0f, value);
         CONSOLE_SERIAL.printf("[WRT] queued: %s=%u\n", label, (unsigned)value);
         return true;
     }

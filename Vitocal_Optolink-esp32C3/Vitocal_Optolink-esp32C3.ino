@@ -41,12 +41,14 @@ static uint32_t rtPrevUs    = 0;
 #include "Vitocal_datapoints.h"
 #include "Vitocal_polling.h"
 #include <string.h>  // for strcmp
+#include <math.h>
 
 // forward declarations
 void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request);
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request);
 void recvMsg(uint8_t* data, size_t len);
 void applyDebugCommand(const char* rawCmd);
+void markWriteQueued(const VitoWiFi::Datapoint& dp, const char* label, bool isU8, float expectedFloat, uint8_t expectedU8);
 
 // serial config
 #define OPTOLINK_SERIAL Serial0
@@ -162,6 +164,28 @@ float pendingWriteFloatValue = 0.0f;
 uint8_t pendingWriteU8Value = 0;
 uint32_t pendingWriteNextTryMs = 0;
 const char* pendingWriteLabel = "";
+const char* writeTraceLabel = "";
+const char* writeTraceDpName = "";
+bool writeTraceIsU8 = false;
+float writeTraceExpectedFloat = 0.0f;
+uint8_t writeTraceExpectedU8 = 0;
+
+bool writeVerifyPending = false;
+const VitoWiFi::Datapoint* writeVerifyDp = nullptr;
+const char* writeVerifyLabel = "";
+bool writeVerifyIsU8 = false;
+float writeVerifyExpectedFloat = 0.0f;
+uint8_t writeVerifyExpectedU8 = 0;
+
+void markWriteQueued(const VitoWiFi::Datapoint& dp, const char* label, bool isU8, float expectedFloat, uint8_t expectedU8) {
+  vitoInFlightDp = &dp;
+  vitoInFlightQueuedUs = micros();
+  writeTraceDpName = dp.name();
+  writeTraceLabel = (label != nullptr) ? label : "";
+  writeTraceIsU8 = isU8;
+  writeTraceExpectedFloat = expectedFloat;
+  writeTraceExpectedU8 = expectedU8;
+}
 
 static const uint32_t DEBUG_HELP_INTERVAL_MS = 10000UL;
 static const uint32_t DEBUG_AUTO_OFF_MS = 300000UL;
@@ -729,6 +753,7 @@ void loop() {
     if (queued) {
       vitoWritePending = true;
       pendingWriteActive = false;
+      markWriteQueued(*pendingWriteDp, pendingWriteLabel, pendingWriteIsU8, pendingWriteFloatValue, pendingWriteU8Value);
       CONSOLE_SERIAL.printf("[VITO] Deferred write queued: %s\n", pendingWriteLabel);
     } else {
       pendingWriteNextTryMs = millis() + 250UL;
@@ -824,7 +849,40 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
     currentRspReqMs = (float)dtReqUs / 1000.0f;
 
     if (writeResponse) {
-      CONSOLE_SERIAL.printf("[WRT] success: %s (Δreq=%.3f ms)\n", name, currentRspReqMs);
+      bool dpMatch = (writeTraceDpName != nullptr && writeTraceDpName[0] != '\0' && strcmp(name, writeTraceDpName) == 0);
+      CONSOLE_SERIAL.printf("[WRT] success: queued=%s dp=%s callback=%s match=%s (Δreq=%.3f ms)\n",
+        writeTraceLabel,
+        writeTraceDpName,
+        name,
+        dpMatch ? "yes" : "no",
+        currentRspReqMs);
+      writeVerifyPending = false;
+      writeVerifyDp = nullptr;
+      writeVerifyLabel = "";
+    }
+
+    if (writeVerifyPending && writeVerifyDp != nullptr && isDp(request, *writeVerifyDp)) {
+      bool applied = false;
+      if (writeVerifyIsU8) {
+        uint8_t observedU8 = value;
+        applied = (observedU8 == writeVerifyExpectedU8);
+        CONSOLE_SERIAL.printf("[WRT] post-timeout check: %s observed=%u expected=%u -> %s\n",
+          writeVerifyLabel,
+          (unsigned)observedU8,
+          (unsigned)writeVerifyExpectedU8,
+          applied ? "confirmed-applied" : "confirmed-not-applied");
+      } else {
+        float observedF = value;
+        applied = fabsf(observedF - writeVerifyExpectedFloat) <= 0.11f;
+        CONSOLE_SERIAL.printf("[WRT] post-timeout check: %s observed=%.1f expected=%.1f -> %s\n",
+          writeVerifyLabel,
+          observedF,
+          writeVerifyExpectedFloat,
+          applied ? "confirmed-applied" : "confirmed-not-applied");
+      }
+      writeVerifyPending = false;
+      writeVerifyDp = nullptr;
+      writeVerifyLabel = "";
     }
 
     bool handled = false;
@@ -1003,7 +1061,23 @@ void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& requ
   CONSOLE_SERIAL.print((float)dtReqUs / 1000.0f, 3);
   CONSOLE_SERIAL.print(" ms): ");
   if (writeResponse) {
-    CONSOLE_SERIAL.printf("\n[WRT] failed: %s (Δreq=%.3f ms)\n", request.name(), (float)dtReqUs / 1000.0f);
+    bool dpMatch = (writeTraceDpName != nullptr && writeTraceDpName[0] != '\0' && strcmp(request.name(), writeTraceDpName) == 0);
+    CONSOLE_SERIAL.printf("\n[WRT] failed: queued=%s dp=%s callback=%s match=%s (Δreq=%.3f ms)\n",
+      writeTraceLabel,
+      writeTraceDpName,
+      request.name(),
+      dpMatch ? "yes" : "no",
+      (float)dtReqUs / 1000.0f);
+
+    if (error == VitoWiFi::OptolinkResult::TIMEOUT && vitoInFlightDp != nullptr) {
+      writeVerifyPending = true;
+      writeVerifyDp = vitoInFlightDp;
+      writeVerifyLabel = writeTraceLabel;
+      writeVerifyIsU8 = writeTraceIsU8;
+      writeVerifyExpectedFloat = writeTraceExpectedFloat;
+      writeVerifyExpectedU8 = writeTraceExpectedU8;
+      CONSOLE_SERIAL.printf("[WRT] timeout verify armed: %s\n", writeVerifyLabel);
+    }
   }
   if (error == VitoWiFi::OptolinkResult::TIMEOUT) {
     CONSOLE_SERIAL.println("timeout");
