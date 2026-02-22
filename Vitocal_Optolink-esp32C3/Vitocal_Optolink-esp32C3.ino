@@ -477,6 +477,10 @@ void setup() {
 
   // start ota, webserial, server
   ElegantOTA.begin(&server, "", "");  // ElegantOTA v3.x requires username/password (empty = no auth)
+  ElegantOTA.setAutoReboot(true);
+  ElegantOTA.onEnd([](bool success) {
+    CONSOLE_SERIAL.printf("[OTA] finished, success=%s\n", success ? "true" : "false");
+  });
   WebSerial.begin(&server);
   WebSerial.onMessage(recvMsg);
   server.begin();
@@ -719,7 +723,8 @@ void loop() {
   // Essential: Keep the library state machine running
   vitoWIFI.loop();
   mqtt.loop();
-  // Note: ElegantOTA.loop() not needed with AsyncWebServer (v3.x uses event handlers)
+  // Required for ElegantOTA auto-reboot housekeeping after successful OTA upload.
+  ElegantOTA.loop();
   WebSerial.loop();
 
   EVERY_N_SECONDS(300) {
