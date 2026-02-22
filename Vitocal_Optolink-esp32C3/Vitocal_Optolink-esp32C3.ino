@@ -356,7 +356,7 @@ inline void logDpFloat(const char* tag, float val, uint32_t& lastMs) {
     uint32_t dt  = lastMs ? (now - lastMs) : 0;
     lastMs = now;
 
-  if (!debugDatapointLogs) {
+  if (!(debugDatapointLogs || debugEHeizOnly)) {
     return;
   }
 
@@ -381,7 +381,7 @@ inline void logDpUint(const char* tag, uint8_t v, uint32_t& lastMs) {
     uint32_t dt  = lastMs ? (now - lastMs) : 0;
     lastMs = now;
 
-  if (!debugDatapointLogs) {
+  if (!(debugDatapointLogs || debugEHeizOnly)) {
     return;
   }
 
@@ -406,7 +406,7 @@ inline void logDpMode(const char* tag, uint8_t v, const char* label, uint32_t& l
     uint32_t dt  = lastMs ? (now - lastMs) : 0;
     lastMs = now;
 
-  if (!debugDatapointLogs) {
+  if (!(debugDatapointLogs || debugEHeizOnly)) {
     return;
   }
 
@@ -988,7 +988,7 @@ void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoi
         uint32_t now = millis();
         uint32_t dt  = lastRelEHeiz2Ms ? (now - lastRelEHeiz2Ms) : 0;
         lastRelEHeiz2Ms = now;
-        if (debugDatapointLogs) {
+        if (debugDatapointLogs || debugEHeizOnly) {
           CONSOLE_SERIAL.print("[RSP] ");
           CONSOLE_SERIAL.print(currentRspName);
           CONSOLE_SERIAL.print(" req=");
