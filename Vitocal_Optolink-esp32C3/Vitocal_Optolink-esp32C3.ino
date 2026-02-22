@@ -540,7 +540,8 @@ inline bool debugModeActive() {
 }
 
 void printConsoleDebugInputs() {
-  CONSOLE_SERIAL.printf("[DBG] cmds: Dfast=%s Druntime=%s (auto-off in 5 min)\n",
+  CONSOLE_SERIAL.printf("[DBG] sw=%s | cmds: Dfast=%s Druntime=%s (auto-off in 5 min)\n",
+    DEVICE_SWVERSION,
     debugFastOnly ? "on" : "off",
     debugRuntime ? "on" : "off");
 }
