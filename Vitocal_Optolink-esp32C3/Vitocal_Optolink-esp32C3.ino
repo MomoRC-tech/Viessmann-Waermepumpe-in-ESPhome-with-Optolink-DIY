@@ -45,6 +45,8 @@ static uint32_t rtPrevUs    = 0;
 // forward declarations
 void onVitoResponse(const uint8_t* data, uint8_t length, const VitoWiFi::Datapoint& request);
 void onVitoError(VitoWiFi::OptolinkResult error, const VitoWiFi::Datapoint& request);
+void recvMsg(uint8_t* data, size_t len);
+void applyDebugCommand(const char* rawCmd);
 
 // serial config
 #define OPTOLINK_SERIAL Serial0
@@ -133,9 +135,11 @@ uint32_t vitoErrorWindowStartMs = 0;
 static const uint32_t DEFAULT_FAST_INTERVAL_MS   = 40000UL; // relays/pumps/compressor/status
 static const uint32_t DEFAULT_MEDIUM_INTERVAL_MS = 64000UL; // temperatures
 static const uint32_t DEFAULT_SLOW_INTERVAL_MS   = 180000UL; // setpoints/hysteresis/heating curve
+static const uint32_t DEFAULT_DEBUG_INTERVAL_MS  = 0UL;
 VitoPollGroupState vitoFastState   = {0, 0, 0, DEFAULT_FAST_INTERVAL_MS};
 VitoPollGroupState vitoMediumState = {0, 0, 0, DEFAULT_MEDIUM_INTERVAL_MS};
 VitoPollGroupState vitoSlowState   = {0, 0, 0, DEFAULT_SLOW_INTERVAL_MS};
+VitoPollGroupState vitoDebugState  = {0, 0, 0, DEFAULT_DEBUG_INTERVAL_MS};
 
 // Global VitoWiFi scheduling state:
 // - at most one in-flight request at a time
@@ -156,6 +160,14 @@ float pendingWriteFloatValue = 0.0f;
 uint8_t pendingWriteU8Value = 0;
 uint32_t pendingWriteNextTryMs = 0;
 const char* pendingWriteLabel = "";
+
+static const uint32_t DEBUG_HELP_INTERVAL_MS = 10000UL;
+static const uint32_t DEBUG_AUTO_OFF_MS = 300000UL;
+static bool debugFastOnly = false;
+static bool debugRuntime = false;
+static uint32_t debugModeSinceMs = 0;
+static char usbConsoleCmdBuffer[32] = {0};
+static uint8_t usbConsoleCmdPos = 0;
 
 // labels
 static const char* const operationModeLabels[] = {
@@ -245,7 +257,6 @@ DpTimingInfo dpTiming[] = {
 
 constexpr size_t dpTimingCount = sizeof(dpTiming) / sizeof(dpTiming[0]);
 
-
 // VitoWiFi datapoint polling groups
 // fast: relays, pumps, compressor, error (operational status)
 VitoWiFi::Datapoint* vitoFast[] = {
@@ -261,7 +272,6 @@ VitoWiFi::Datapoint* vitoFast[] = {
 };
 const int vitoFastSize = sizeof(vitoFast) / sizeof(vitoFast[0]);
 
-// medium: temperatures
 VitoWiFi::Datapoint* vitoMedium[] = {
   &dpTempOutside,
   &dpWWoben,
@@ -273,7 +283,6 @@ VitoWiFi::Datapoint* vitoMedium[] = {
 };
 const int vitoMediumSize = sizeof(vitoMedium) / sizeof(vitoMedium[0]);
 
-// slow: setpoints, hysteresis, heating curve
 VitoWiFi::Datapoint* vitoSlow[] = {
   &dpTempRaumSoll,
   &dpTempRaumSollRed,
@@ -284,6 +293,12 @@ VitoWiFi::Datapoint* vitoSlow[] = {
   &dpTempHKNeigung
 };
 const int vitoSlowSize = sizeof(vitoSlow) / sizeof(vitoSlow[0]);
+
+VitoWiFi::Datapoint* vitoDebug[] = {
+  &dpWWoben,
+  &dpTempWWSoll
+};
+const int vitoDebugSize = sizeof(vitoDebug) / sizeof(vitoDebug[0]);
 
 // --- per-DP timing helpers -------------------------------------
 inline void logDpFloat(const char* tag, float val, uint32_t& lastMs) {
@@ -463,12 +478,17 @@ void setup() {
   // start ota, webserial, server
   ElegantOTA.begin(&server, "", "");  // ElegantOTA v3.x requires username/password (empty = no auth)
   WebSerial.begin(&server);
+  WebSerial.msgCallback(recvMsg);
   server.begin();
   CONSOLE_SERIAL.println("Web server started; ElegantOTA ans WebSerial ready");
 
 
   //setup home assistant *******
   setupHomeAssistant();
+
+  CONSOLE_SERIAL.printf("[DBG] cmds: Dfast=%s Druntime=%s (auto-off in 5 min)\n",
+    debugFastOnly ? "on" : "off",
+    debugRuntime ? "on" : "off");
   
   CONSOLE_SERIAL.println(F("Setup finished..."));
 }
@@ -515,10 +535,117 @@ void myPrintRuntime() {
     }
 }
 
+inline bool debugModeActive() {
+  return debugFastOnly || debugRuntime;
+}
+
+void printConsoleDebugInputs() {
+  CONSOLE_SERIAL.printf("[DBG] cmds: Dfast=%s Druntime=%s (auto-off in 5 min)\n",
+    debugFastOnly ? "on" : "off",
+    debugRuntime ? "on" : "off");
+}
+
+void disableDebugModes(const char* reason) {
+  bool wasActive = debugModeActive();
+  debugFastOnly = false;
+  debugRuntime = false;
+  debugModeSinceMs = 0;
+
+  if (wasActive) {
+    CONSOLE_SERIAL.printf("[DBG] debug modes disabled (%s)\n", reason);
+  }
+}
+
+void applyDebugCommand(const char* rawCmd) {
+  if (rawCmd == nullptr) {
+    return;
+  }
+
+  const char* start = rawCmd;
+  while (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n') {
+    ++start;
+  }
+
+  size_t len = strlen(start);
+  while (len > 0) {
+    char c = start[len - 1];
+    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+      --len;
+    } else {
+      break;
+    }
+  }
+
+  if (len == 0) {
+    return;
+  }
+
+  char cmd[32];
+  if (len >= sizeof(cmd)) {
+    len = sizeof(cmd) - 1;
+  }
+  memcpy(cmd, start, len);
+  cmd[len] = '\0';
+
+  if (strcmp(cmd, "Dfast") == 0 || strcmp(cmd, "dfast") == 0) {
+    debugFastOnly = true;
+    debugModeSinceMs = millis();
+    CONSOLE_SERIAL.println("[DBG] Dfast active: polling only vitoDebug");
+  } else if (strcmp(cmd, "Druntime") == 0 || strcmp(cmd, "druntime") == 0) {
+    debugRuntime = true;
+    debugModeSinceMs = millis();
+    CONSOLE_SERIAL.println("[DBG] Druntime active: runtime measurement output enabled");
+  } else {
+    CONSOLE_SERIAL.print("[DBG] unknown input: ");
+    CONSOLE_SERIAL.println(cmd);
+  }
+
+  printConsoleDebugInputs();
+}
+
+void recvMsg(uint8_t* data, size_t len) {
+  if (data == nullptr || len == 0) {
+    return;
+  }
+
+  char msg[64];
+  size_t n = len;
+  if (n >= sizeof(msg)) {
+    n = sizeof(msg) - 1;
+  }
+  memcpy(msg, data, n);
+  msg[n] = '\0';
+  applyDebugCommand(msg);
+}
+
+void pollUsbConsoleInput() {
+  while (Serial.available() > 0) {
+    char c = static_cast<char>(Serial.read());
+
+    if (c == '\r' || c == '\n') {
+      if (usbConsoleCmdPos > 0) {
+        usbConsoleCmdBuffer[usbConsoleCmdPos] = '\0';
+        applyDebugCommand(usbConsoleCmdBuffer);
+        usbConsoleCmdPos = 0;
+      }
+      continue;
+    }
+
+    if (usbConsoleCmdPos < sizeof(usbConsoleCmdBuffer) - 1) {
+      usbConsoleCmdBuffer[usbConsoleCmdPos++] = c;
+    }
+  }
+}
+
 
 //** loop************************************************
 void loop() {
   myRuntimeMeasurement();
+  pollUsbConsoleInput();
+
+  if (debugModeActive() && debugModeSinceMs != 0 && (millis() - debugModeSinceMs) >= DEBUG_AUTO_OFF_MS) {
+    disableDebugModes("timeout");
+  }
 
   // Retry deferred writes without blocking loop execution.
   if (pendingWriteActive && millis() >= pendingWriteNextTryMs) {
@@ -546,13 +673,14 @@ void loop() {
 
   // Priority: fast -> medium -> slow
   if (!vitoWritePending) {
-    if (!queued) queued = pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   vitoResponseGapMs);
-    if (!queued) queued = pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, vitoResponseGapMs);
-    if (!queued) queued = pollVitoGroup(vitoSlowState,   vitoSlow,   vitoSlowSize,   vitoResponseGapMs);
+    if (debugFastOnly) {
+      if (!queued) queued = pollVitoGroup(vitoDebugState, vitoDebug, vitoDebugSize, vitoResponseGapMs);
+    } else {
+      if (!queued) queued = pollVitoGroup(vitoFastState,   vitoFast,   vitoFastSize,   vitoResponseGapMs);
+      if (!queued) queued = pollVitoGroup(vitoMediumState, vitoMedium, vitoMediumSize, vitoResponseGapMs);
+      if (!queued) queued = pollVitoGroup(vitoSlowState,   vitoSlow,   vitoSlowSize,   vitoResponseGapMs);
+    }
   }
-
-  // (If you still want the test group during debugging, put it here and
-  // guard with #if / #else so you don't poll dpTempOutside twice.)
 
 
   EVERY_N_SECONDS(8) {
@@ -568,6 +696,10 @@ void loop() {
       mqtt.isConnected() ? "up" : "down");
   }
 
+  EVERY_N_SECONDS(10) {
+    printConsoleDebugInputs();
+  }
+
   // Essential: Keep the library state machine running
   vitoWIFI.loop();
   mqtt.loop();
@@ -579,7 +711,9 @@ void loop() {
   }
 
   EVERY_N_SECONDS(2) {
-    myPrintRuntime();
+    if (debugRuntime) {
+      myPrintRuntime();
+    }
   }
 }
 
