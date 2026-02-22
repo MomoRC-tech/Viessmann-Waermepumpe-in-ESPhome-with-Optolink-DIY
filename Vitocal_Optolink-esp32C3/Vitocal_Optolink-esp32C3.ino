@@ -148,7 +148,7 @@ VitoPollGroupState vitoEHeizDebugState  = {0, 0, 0, DEFAULT_EHEIZ_DEBUG_INTERVAL
 // - at most one in-flight request at a time
 // - enforce a small gap after each response/error
 #ifndef VITO_RESPONSE_GAP_MS
-#define VITO_RESPONSE_GAP_MS 0UL   // no extra software gap; rely on VitoWiFi busy/protocol timing
+#define VITO_RESPONSE_GAP_MS 40UL   // small safety gap improves frame stability on fast loops
 #endif
 static const uint32_t vitoResponseGapMs = VITO_RESPONSE_GAP_MS;
 
